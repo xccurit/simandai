@@ -90,7 +90,12 @@ watch(searchQuery, () => { currentPage.value = 1 })
 
 const filteredPegawai = computed(() => {
   const query = searchQuery.value.toLowerCase()
-  return pegawaiList.value.filter(p => p.nama.toLowerCase().includes(query) || p.nip.includes(query))
+
+  return pegawaiList.value.filter(p =>
+    p.nama_lengkap?.toLowerCase().includes(query) ||
+    p.nip_baru?.includes(query) ||
+    p.nip_lama?.includes(query)
+  )
 })
 
 const totalPages = computed(() => Math.ceil(filteredPegawai.value.length / itemsPerPage))
