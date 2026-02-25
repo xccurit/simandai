@@ -12,7 +12,6 @@ const formatTanggal = (date) => {
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
 }
 
-// Helper Nama Bulan
 const getNamaBulan = (bulanIndex) => {
   const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
   return months[bulanIndex - 1] || months[bulanIndex] || ''
@@ -147,35 +146,54 @@ const analisisKelayakan = computed(() => {
 const showModalKalkulator = ref(false)
 const isEditing = ref(false)
 const editingId = ref(null)
-const formKalkulasi = ref({ tahun: new Date().getFullYear(), bulan_selesai: 12, bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik' })
+const formKalkulasi = ref({ tahun: new Date().getFullYear(), bulan_mulai: 1, bulan_selesai: 12, jabatan: 'Ahli Muda', predikat: 'Baik' })
+
+// 🚀 DURASI DIHITUNG OTOMATIS
+const durasiBulan = computed(() => {
+  const start = parseInt(formKalkulasi.value.bulan_mulai)
+  const end = parseInt(formKalkulasi.value.bulan_selesai)
+  return end >= start ? (end - start + 1) : 0
+})
 
 const hasilKalkulasi = computed(() => {
   const selectedJabatan = kamusJabatan.find(j => j.nama === formKalkulasi.value.jabatan)
   const selectedPredikat = kamusPredikat.find(p => p.nama === formKalkulasi.value.predikat)
-  if (!selectedJabatan || !selectedPredikat) return 0
-  return ((formKalkulasi.value.bulan / 12) * selectedJabatan.koef_tahun * selectedPredikat.persen).toFixed(3)
+  if (!selectedJabatan || !selectedPredikat || durasiBulan.value <= 0) return 0
+  return ((durasiBulan.value / 12) * selectedJabatan.koef_tahun * selectedPredikat.persen).toFixed(3)
 })
 
 const bukaModalTambah = () => {
   isEditing.value = false; editingId.value = null
-  formKalkulasi.value = { tahun: new Date().getFullYear(), bulan_selesai: 12, bulan: 12, jabatan: selectedPegawai.value?.jabatan.includes('Muda') ? 'Ahli Muda' : 'Ahli Pertama', predikat: 'Baik' }
+  formKalkulasi.value = { tahun: new Date().getFullYear(), bulan_mulai: 1, bulan_selesai: 12, jabatan: selectedPegawai.value?.jabatan.includes('Muda') ? 'Ahli Muda' : 'Ahli Pertama', predikat: 'Baik' }
   showModalKalkulator.value = true
 }
 
 const bukaModalEdit = (item) => {
   if (item.sumber === 'Migrasi Data Lama') { alert("Data Migrasi Lama tidak disarankan untuk diedit."); return }
   isEditing.value = true; editingId.value = item.id
-  formKalkulasi.value = { tahun: item.tahun, bulan_selesai: item.bulan_selesai || item.bulan, bulan: item.bulan, jabatan: item.jabatan, predikat: item.predikat }
+  formKalkulasi.value = { 
+    tahun: item.tahun, 
+    bulan_mulai: item.bulan_mulai || 1, 
+    bulan_selesai: item.bulan_selesai || item.bulan, 
+    jabatan: item.jabatan, 
+    predikat: item.predikat 
+  }
   showModalKalkulator.value = true
 }
 
 const simpanKalkulasi = () => {
+  if (durasiBulan.value <= 0) {
+    alert("Bulan Selesai harus lebih besar atau sama dengan Bulan Mulai!")
+    return
+  }
+
   const dataBaru = { 
     id: isEditing.value ? editingId.value : Date.now(), 
     pegawai_id: selectedPegawai.value.id,
     tahun: formKalkulasi.value.tahun, 
+    bulan_mulai: parseInt(formKalkulasi.value.bulan_mulai),
     bulan_selesai: parseInt(formKalkulasi.value.bulan_selesai),
-    bulan: parseInt(formKalkulasi.value.bulan), 
+    bulan: durasiBulan.value, // Disimpan untuk kebutuhan backup/tampilan
     jabatan: formKalkulasi.value.jabatan, 
     predikat: formKalkulasi.value.predikat, 
     ak_didapat: parseFloat(hasilKalkulasi.value), 
@@ -190,7 +208,7 @@ const hapusItem = (id) => {
 }
 
 // =====================================================================
-// 5. LOGIKA PRINTING (DINAMIS S.D BULAN)
+// 5. LOGIKA PRINTING (DINAMIS RENTANG BULAN)
 // =====================================================================
 const showModalPrintKonversi = ref(false)
 const showModalPrintAkumulasi = ref(false)
@@ -205,14 +223,12 @@ const cetakLaporanTahunan = (item) => {
   const jabInfo = kamusJabatan.find(j => item.jabatan.toLowerCase().includes(j.keyword)) || kamusJabatan.find(j => jabatanLower.includes(j.keyword))
   const predInfo = kamusPredikat.find(p => p.nama === item.predikat)
   
-  const endMonth = item.bulan_selesai || (item.bulan === 12 ? 12 : item.bulan)
-  const duration = item.bulan
-  const startMonthCalc = (endMonth - duration + 1)
-  const startMonth = startMonthCalc > 0 ? startMonthCalc : 1
-
-  const masaPenilaian = startMonth === endMonth 
-    ? `${getNamaBulan(endMonth)} ${item.tahun}`
-    : `${getNamaBulan(startMonth)} s.d ${getNamaBulan(endMonth)} ${item.tahun}`
+  // Format tulisan masa penilaian (Bulan Awal s.d Bulan Akhir)
+  const start = item.bulan_mulai || 1
+  const end = item.bulan_selesai || 12
+  const masaPenilaian = start === end 
+    ? `${getNamaBulan(end)} ${item.tahun}`
+    : `${getNamaBulan(start)} s.d ${getNamaBulan(end)} ${item.tahun}`
 
   printData.value = { 
     ...item, 
@@ -239,8 +255,8 @@ const siapkanDataAkumulasi = () => {
   if (riwayatAK.value.length > 0) {
     const sorted = [...riwayatAK.value].sort((a, b) => {
        if (b.tahun !== a.tahun) return b.tahun - a.tahun 
-       const endA = a.bulan_selesai || (a.bulan === 12 ? 12 : a.bulan)
-       const endB = b.bulan_selesai || (b.bulan === 12 ? 12 : b.bulan)
+       const endA = a.bulan_selesai || 12
+       const endB = b.bulan_selesai || 12
        return endB - endA 
     })
     latestItem = sorted[0]
@@ -248,7 +264,7 @@ const siapkanDataAkumulasi = () => {
 
   let masaPenilaian = ""
   if (latestItem) {
-    const endMonth = latestItem.bulan_selesai || (latestItem.bulan === 12 ? 12 : latestItem.bulan)
+    const endMonth = latestItem.bulan_selesai || 12
     masaPenilaian = `s.d ${getNamaBulan(endMonth)} ${latestItem.tahun}`
   } else {
     const now = new Date()
@@ -277,7 +293,7 @@ const cetakFormPAK = () => {
   showModalPrintPAK.value = true
 }
 
-// 🖨️ FUNGSI PRINT BROWSER BAWAAN (TANPA LIBRARY)
+// 🖨️ FUNGSI PRINT BROWSER BAWAAN
 const unduhPDF = (elementId) => {
   const originalElement = document.getElementById(elementId);
   if (!originalElement) return;
@@ -417,15 +433,15 @@ const updateStatusPegawai = () => {
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead class="bg-gray-50 text-xs uppercase border-b text-gray-600">
-              <tr><th class="px-6 py-3">Tahun</th><th class="px-6 py-3 text-center">Bulan Akhir (Durasi)</th><th class="px-6 py-3">Jabatan</th><th class="px-6 py-3 text-center">Predikat</th><th class="px-6 py-3 text-right">AK Didapat</th><th class="px-6 py-3 text-center">Aksi / Cetak</th></tr>
+              <tr><th class="px-6 py-3">Tahun</th><th class="px-6 py-3 text-center">Rentang Waktu</th><th class="px-6 py-3">Jabatan</th><th class="px-6 py-3 text-center">Predikat</th><th class="px-6 py-3 text-right">AK Didapat</th><th class="px-6 py-3 text-center">Aksi / Cetak</th></tr>
             </thead>
             <tbody class="divide-y text-sm">
               <tr v-for="item in riwayatAK" :key="item.id" class="hover:bg-gray-50 group">
                 <td class="px-6 py-4 font-bold">{{ item.tahun }}</td>
-                <td class="px-6 py-4 text-center">
+                <td class="px-6 py-4 text-center leading-tight">
                   <span v-if="item.sumber !== 'Migrasi Data Lama'">
-                    {{ getNamaBulan(item.bulan_selesai || item.bulan) }}<br>
-                    <span class="text-[10px] text-gray-500">({{ item.bulan }} Bulan)</span>
+                    <span class="font-semibold text-gray-800">{{ getNamaBulan(item.bulan_mulai) }} s/d {{ getNamaBulan(item.bulan_selesai) }}</span><br>
+                    <span class="text-[11px] text-gray-500">({{ item.bulan }} Bulan)</span>
                   </span>
                   <span v-else class="text-gray-400">-</span>
                 </td>
@@ -460,8 +476,8 @@ const updateStatusPegawai = () => {
                <input v-model="formKalkulasi.tahun" type="number" class="w-full p-2 border rounded outline-none focus:border-bps-blue">
              </div>
              <div>
-               <label class="block text-xs font-bold mb-1">Bulan Akhir Penilaian</label>
-               <select v-model="formKalkulasi.bulan_selesai" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue">
+               <label class="block text-xs font-bold mb-1">Bulan Mulai</label>
+               <select v-model="formKalkulasi.bulan_mulai" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue">
                   <option value="1">Januari</option>
                   <option value="2">Februari</option>
                   <option value="3">Maret</option>
@@ -477,15 +493,32 @@ const updateStatusPegawai = () => {
                </select>
              </div>
              <div>
-               <label class="block text-xs font-bold mb-1">Durasi (Jumlah Bulan)</label>
-               <input v-model="formKalkulasi.bulan" type="number" max="12" class="w-full p-2 border rounded outline-none focus:border-bps-blue">
+               <label class="block text-xs font-bold mb-1">Bulan Selesai</label>
+               <select v-model="formKalkulasi.bulan_selesai" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue">
+                  <option value="1">Januari</option>
+                  <option value="2">Februari</option>
+                  <option value="3">Maret</option>
+                  <option value="4">April</option>
+                  <option value="5">Mei</option>
+                  <option value="6">Juni</option>
+                  <option value="7">Juli</option>
+                  <option value="8">Agustus</option>
+                  <option value="9">September</option>
+                  <option value="10">Oktober</option>
+                  <option value="11">November</option>
+                  <option value="12">Desember</option>
+               </select>
              </div>
           </div>
           
           <div><label class="block text-xs font-bold mb-1">Jabatan Saat Evaluasi</label><select v-model="formKalkulasi.jabatan" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="j in kamusJabatan" :value="j.nama">{{ j.nama }} (Koefisien: {{ j.koef_tahun }})</option></select></div>
           <div><label class="block text-xs font-bold mb-1">Predikat Kinerja</label><select v-model="formKalkulasi.predikat" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="p in kamusPredikat" :value="p.nama">{{ p.nama }} ({{ p.persen * 100 }}%)</option></select></div>
           
-          <div class="p-4 bg-blue-50 border rounded text-center"><p class="text-xs uppercase font-bold text-blue-600 mb-1">Hasil Konversi Angka Kredit</p><p class="text-3xl font-extrabold">{{ hasilKalkulasi }}</p></div>
+          <div class="p-4 bg-blue-50 border rounded text-center flex flex-col items-center justify-center">
+             <p class="text-xs uppercase font-bold text-blue-600 mb-1">Hasil Konversi Angka Kredit</p>
+             <p class="text-3xl font-extrabold text-bps-blue">{{ hasilKalkulasi }}</p>
+             <p class="text-xs text-gray-500 mt-1">Berdasarkan Durasi Penilaian: <strong>{{ durasiBulan }} Bulan</strong></p>
+          </div>
         </div>
         <div class="p-4 border-t flex justify-end gap-2 bg-gray-50 rounded-b-2xl">
           <button @click="showModalKalkulator = false" class="px-5 py-2 text-gray-600 font-semibold rounded hover:bg-gray-200">Batal</button>
@@ -587,7 +620,7 @@ const updateStatusPegawai = () => {
               
               <img src="/balai.png" style="position: absolute; right: 0; top: 6px; width: 60px; height: auto;" />
            </div>
-          </div>
+           </div>
       </div>
     </div>
 
@@ -607,7 +640,7 @@ const updateStatusPegawai = () => {
                  <h2 class="text-[20px] text relative left-1 font-bold uppercase tracking-wider -m-1 leading-tight italic" style="font-family: Arial, sans-serif;">PROVINSI KALIMANTAN TENGAH</h2>
                  <p class="text-[12px] m-0 leading-tight mt-1">Jl. Kapten Piere Tendean No. 6 Palangka Raya 73112</p>
                  <p class="text-[12px] m-0 leading-tight">Telp. (0536) 3228105, Fax.: (0536) 3221380,</p>
-                 <p class="text-[12px] m-0 leading-tight">Homepage: https://kalteng.bps.go.id/ E-mail: bps6200@bps.go.id</p>
+                 <p class="text-[12px] m-0 leading-tight">Homepage: https://kalteng.bps.go.id/  E-mail: bps6200@bps.go.id</p>
              </div>
            </div>
 
@@ -763,12 +796,12 @@ const updateStatusPegawai = () => {
              </tbody>
            </table>
 
-           <div class="mb-10 flex text-justify border border-black p-3">
+           <div class="mb-2 flex text-justify border border-black p-3">
               <span class="font-bold mr-2">III.</span>
               <span>Dapat dipertimbangkan untuk dinaikkan pangkatnya setingkat lebih tinggi.</span>
            </div>
 
-           <div class="flex justify-between items-end mt-2 mb-6">
+           <div class="flex justify-between items-end mt-2 mb-10">
              <div class="text-[11px]">
                 <p class="font-bold mb-1">ASLI Penetapan Angka Kredit untuk:</p>
                 <p>1. Sdr. {{ printData.pegawai.nama }}</p>
@@ -782,13 +815,12 @@ const updateStatusPegawai = () => {
                <p class="font-bold underline">Agnes Widiastuti</p>
              </div>
            </div>
-        </div>
-        <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid black; position: relative;">
-              
-              <img src="/balai.png" style="position: absolute; right: 0; top: 6px; width: 60px; height: auto;" />
+
+           <div class="w-full border-t border-black pt-2 flex justify-end mt-auto">
+              <img src="/balai.png" alt="Balai" class="w-[60px] h-auto" />
            </div>
-      </div>
-    </div>
+
+        </div> </div> </div>
 
   </div>
 </template>
@@ -803,7 +835,7 @@ const updateStatusPegawai = () => {
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-/* GAYA KHUSUS SAAT PRINT/SAVE PDF (MENGGUNAKAN WINDOW.PRINT BROWSER) */
+/* GAYA KHUSUS SAAT PRINT/SAVE PDF */
 @media print {
   @page {
     size: A4 portrait;

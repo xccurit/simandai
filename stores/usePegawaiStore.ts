@@ -8,13 +8,16 @@ interface KamusPangkat {
   golru: string;
   nama: string;
   ak_kp: number | null;
+  next_golru: string; 
+  next_nama: string;  
 }
 
 interface KamusJabatan {
   keyword: string;
   nama: string;
+  koef_tahun: number;            // <--- TAMBAHKAN BARIS INI
   target_jenjang: number | null;
-  next: string | null;
+  next: string | null;           // <--- INI JUGA WAJIB ADA
 }
 
 interface Pegawai {
@@ -32,13 +35,13 @@ interface Pegawai {
   total_ak_kumulatif: number;
 }
 
-// Di dalam stores/usePegawaiStore.ts
 interface RiwayatAK {
   id: number;
   pegawai_id: number;
   tahun: number;
-  bulan_selesai?: number; // <--- TAMBAHKAN BARIS INI
-  bulan: number;
+  bulan_mulai: number;   // <--- DITAMBAHKAN: Bulan Awal
+  bulan_selesai: number; // <--- DITAMBAHKAN: Bulan Akhir
+  bulan: number;         // Durasi (Hasil Kalkulasi)
   jabatan: string;
   predikat: string;
   ak_didapat: number;
@@ -51,50 +54,50 @@ export const usePegawaiStore = defineStore('pegawai', {
   // ==========================================
   state: () => ({
     kamusPangkat: [
-      { golru: 'II/c', nama: 'Pengatur', ak_kp: 20 },
-      { golru: 'II/d', nama: 'Pengatur Tk.I', ak_kp: 20 },
-      { golru: 'III/a', nama: 'Penata Muda', ak_kp: 50 },
-      { golru: 'III/b', nama: 'Penata Muda Tk.I', ak_kp: 50 },
-      { golru: 'III/c', nama: 'Penata', ak_kp: 100 },
-      { golru: 'III/d', nama: 'Penata Tk.I', ak_kp: 100 },
-      { golru: 'IV/a', nama: 'Pembina', ak_kp: 150 },
-      { golru: 'IV/b', nama: 'Pembina Tk.I', ak_kp: 150 },
-      { golru: 'IV/c', nama: 'Pembina Utama Muda', ak_kp: 150 },
-      { golru: 'IV/d', nama: 'Pembina Utama Madya', ak_kp: 200 },
-    ] as KamusPangkat[], 
+      { golru: 'II/c', nama: 'Pengatur', ak_kp: 20, next_golru: 'II/d', next_nama: 'Pengatur Tk.I' },
+      { golru: 'II/d', nama: 'Pengatur Tk.I', ak_kp: 20, next_golru: 'III/a', next_nama: 'Penata Muda' },
+      { golru: 'III/a', nama: 'Penata Muda', ak_kp: 50, next_golru: 'III/b', next_nama: 'Penata Muda Tk.I' },
+      { golru: 'III/b', nama: 'Penata Muda Tk.I', ak_kp: 50, next_golru: 'III/c', next_nama: 'Penata' },
+      { golru: 'III/c', nama: 'Penata', ak_kp: 100, next_golru: 'III/d', next_nama: 'Penata Tk.I' },
+      { golru: 'III/d', nama: 'Penata Tk.I', ak_kp: 100, next_golru: 'IV/a', next_nama: 'Pembina' },
+      { golru: 'IV/a', nama: 'Pembina', ak_kp: 150, next_golru: 'IV/b', next_nama: 'Pembina Tk.I' },
+      { golru: 'IV/b', nama: 'Pembina Tk.I', ak_kp: 150, next_golru: 'IV/c', next_nama: 'Pembina Utama Muda' },
+      { golru: 'IV/c', nama: 'Pembina Utama Muda', ak_kp: 150, next_golru: 'IV/d', next_nama: 'Pembina Utama Madya' },
+      { golru: 'IV/d', nama: 'Pembina Utama Madya', ak_kp: 200, next_golru: 'IV/e', next_nama: 'Pembina Utama' },
+      { golru: 'IV/e', nama: 'Pembina Utama', ak_kp: null, next_golru: '-', next_nama: '-' }, 
+    ] as KamusPangkat[],
 
     kamusJabatan: [
-      { keyword: 'pertama', nama: 'Ahli Pertama', target_jenjang: 100, next: 'Ahli Muda' },
-      { keyword: 'muda', nama: 'Ahli Muda', target_jenjang: 200, next: 'Ahli Madya' },
-      { keyword: 'madya', nama: 'Ahli Madya', target_jenjang: 450, next: 'Ahli Utama' },
-      { keyword: 'utama', nama: 'Ahli Utama', target_jenjang: null, next: null },
-      { keyword: 'terampil', nama: 'Terampil', target_jenjang: 40, next: 'Mahir' },
-      { keyword: 'mahir', nama: 'Mahir', target_jenjang: 100, next: 'Penyelia' },
-      { keyword: 'penyelia', nama: 'Penyelia', target_jenjang: null, next: null },
-    ] as KamusJabatan[], 
+      { keyword: 'Utama', nama: 'Ahli Utama', koef_tahun: 50, target_jenjang: null },
+      { keyword: 'Madya', nama: 'Ahli Madya', koef_tahun: 37.5, target_jenjang: 450 },
+      { keyword: 'Muda', nama: 'Ahli Muda', koef_tahun: 25, target_jenjang: 200 },
+      { keyword: 'Pertama', nama: 'Ahli Pertama', koef_tahun: 12.5, target_jenjang: 100 },
+      { keyword: 'Penyelia', nama: 'Penyelia', koef_tahun: 25, target_jenjang: null },
+      { keyword: 'Mahir', nama: 'Mahir', koef_tahun: 12.5, target_jenjang: 100 },
+      { keyword: 'Terampil', nama: 'Terampil', koef_tahun: 5, target_jenjang: 40 },
+    ] as KamusJabatan[],
     
     pegawaiList: [
-      { id: 1, nip: '198501012010011001', nama: 'Budi Santoso', jabatan: 'Statistisi Muda', pangkat: 'Penata (III/c)', target_ak_tahunan: 25, unit_kerja: 'BPS Provinsi Kalteng', status_kepegawaian: 'Aktif', karpeg: 'B-010101', ttl: 'Palangka Raya, 10 Jan 1985', jk: 'Laki-laki', total_ak_kumulatif: 72.252 },
+      { id: 1, nip: '198501012010011001', nama: 'Budi Santoso', jabatan: 'Statistisi Ahli Muda', pangkat: 'Penata (III/c)', target_ak_tahunan: 25, unit_kerja: 'BPS Provinsi Kalteng', status_kepegawaian: 'Aktif', karpeg: 'B-010101', ttl: 'Palangka Raya, 10 Jan 1985', jk: 'Laki-laki', total_ak_kumulatif: 72.252 },
       { id: 2, nip: '199103052014101002', nama: 'Delly Rakasiwi, SST', jabatan: 'Pranata Komputer Ahli Muda', pangkat: 'Penata (III/c)', target_ak_tahunan: 25, unit_kerja: 'BPS Provinsi Kalteng', status_kepegawaian: 'Aktif', karpeg: 'B-08007477', ttl: 'Jakarta, 5 Maret 1991', jk: 'Laki-laki', total_ak_kumulatif: 72.251 },
     ] as Pegawai[],
 
-    // TAMBAHAN: Gudang riwayat AK agar tidak reset saat pindah halaman
     riwayatList: [
-      { id: 101, pegawai_id: 1, tahun: 2022, bulan: 12, jabatan: 'Ahli Pertama', predikat: '-', ak_didapat: 7.668, sumber: 'Migrasi Data Lama' },
-      { id: 102, pegawai_id: 1, tahun: 2023, bulan: 10, jabatan: 'Ahli Pertama', predikat: 'Baik', ak_didapat: 10.417, sumber: 'Konversi SKP' },
-      { id: 103, pegawai_id: 1, tahun: 2023, bulan: 2, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 4.167, sumber: 'Konversi SKP' },
-      { id: 104, pegawai_id: 1, tahun: 2024, bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 25.000, sumber: 'Konversi SKP' },
-      { id: 105, pegawai_id: 1, tahun: 2025, bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 25.000, sumber: 'Konversi SKP' },
-      // Copy Data Dummy juga untuk Delly Rakasiwi (ID: 13)
-      { id: 106, pegawai_id: 2, tahun: 2022, bulan: 12, jabatan: 'Ahli Pertama', predikat: '-', ak_didapat: 7.668, sumber: 'Migrasi Data Lama' },
-      { id: 107, pegawai_id: 2, tahun: 2023, bulan: 10, jabatan: 'Ahli Pertama', predikat: 'Baik', ak_didapat: 10.417, sumber: 'Konversi SKP' },
-      { id: 108, pegawai_id: 2, tahun: 2023, bulan: 2, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 4.167, sumber: 'Konversi SKP' },
-      { id: 109, pegawai_id: 2, tahun: 2024, bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 25.000, sumber: 'Konversi SKP' },
-      { id: 110, pegawai_id: 2, tahun: 2025, bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 25.000, sumber: 'Konversi SKP' },
+      { id: 101, pegawai_id: 1, tahun: 2022, bulan_mulai: 1, bulan_selesai: 12, bulan: 12, jabatan: 'Ahli Pertama', predikat: '-', ak_didapat: 7.668, sumber: 'Migrasi Data Lama' },
+      { id: 102, pegawai_id: 1, tahun: 2023, bulan_mulai: 1, bulan_selesai: 10, bulan: 10, jabatan: 'Ahli Pertama', predikat: 'Baik', ak_didapat: 10.417, sumber: 'Konversi SKP' },
+      { id: 103, pegawai_id: 1, tahun: 2023, bulan_mulai: 11, bulan_selesai: 12, bulan: 2, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 4.167, sumber: 'Konversi SKP' },
+      { id: 104, pegawai_id: 1, tahun: 2024, bulan_mulai: 1, bulan_selesai: 12, bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 25.000, sumber: 'Konversi SKP' },
+      { id: 105, pegawai_id: 1, tahun: 2025, bulan_mulai: 1, bulan_selesai: 12, bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 25.000, sumber: 'Konversi SKP' },
+      { id: 101, pegawai_id: 2, tahun: 2022, bulan_mulai: 1, bulan_selesai: 12, bulan: 12, jabatan: 'Ahli Pertama', predikat: '-', ak_didapat: 7.668, sumber: 'Migrasi Data Lama' },
+      { id: 102, pegawai_id: 2, tahun: 2023, bulan_mulai: 1, bulan_selesai: 10, bulan: 10, jabatan: 'Ahli Pertama', predikat: 'Baik', ak_didapat: 10.417, sumber: 'Konversi SKP' },
+      { id: 103, pegawai_id: 2, tahun: 2023, bulan_mulai: 11, bulan_selesai: 12, bulan: 2, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 4.167, sumber: 'Konversi SKP' },
+      { id: 104, pegawai_id: 2, tahun: 2024, bulan_mulai: 1, bulan_selesai: 12, bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 25.000, sumber: 'Konversi SKP' },
+      { id: 105, pegawai_id: 2, tahun: 2025, bulan_mulai: 1, bulan_selesai: 12, bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 25.000, sumber: 'Konversi SKP' },
+    
     ] as RiwayatAK[]
   }),
 
-// ==========================================
+  // ==========================================
   // 3. ACTIONS (FUNGSI UBAH DATA)
   // ==========================================
   actions: {
@@ -112,23 +115,18 @@ export const usePegawaiStore = defineStore('pegawai', {
       }
     },
 
-    // FUNGSI CRUD RIWAYAT (SUDAH DIPERBAIKI TYPING-NYA)
     simpanRiwayat(dataBaru: RiwayatAK, isEditing: boolean) {
       if (isEditing) {
         const index = this.riwayatList.findIndex(x => x.id === dataBaru.id)
         if (index !== -1) {
-          const itemLama = this.riwayatList[index] // Tampung dulu ke variabel
-          
-          // TS Guard: Pastikan itemLama benar-benar tidak undefined
+          const itemLama = this.riwayatList[index]
           if (itemLama) {
-            // Jika edit, hitung selisihnya lalu tambahkan ke total AK
             const selisih = dataBaru.ak_didapat - itemLama.ak_didapat
             this.riwayatList[index] = dataBaru
             this.tambahAngkaKredit(dataBaru.pegawai_id, selisih)
           }
         }
       } else {
-        // Jika tambah baru, push ke gudang dan tambahkan poinnya
         this.riwayatList.push(dataBaru)
         this.tambahAngkaKredit(dataBaru.pegawai_id, dataBaru.ak_didapat)
       }
@@ -137,11 +135,8 @@ export const usePegawaiStore = defineStore('pegawai', {
     hapusRiwayat(id: number, pegawai_id: number) {
       const index = this.riwayatList.findIndex(x => x.id === id)
       if (index !== -1) {
-        const itemDihapus = this.riwayatList[index] // Tampung dulu ke variabel
-        
-        // TS Guard: Pastikan itemDihapus benar-benar tidak undefined
+        const itemDihapus = this.riwayatList[index]
         if (itemDihapus) {
-          // Kurangi poin total sebelum riwayat dihapus
           this.tambahAngkaKredit(pegawai_id, -itemDihapus.ak_didapat)
           this.riwayatList.splice(index, 1)
         }
