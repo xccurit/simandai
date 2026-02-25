@@ -1,48 +1,42 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { usePegawaiStore } from '~/stores/usePegawaiStore'
 
 // =====================================================================
-// 1. MASTER DATA (KAMUS REFERENSI DARI FOTO EXCEL ANDA)
+// 1. MASTER DATA (KAMUS REFERENSI)
 // =====================================================================
 
 // Syarat AK untuk Naik ke Pangkat BERIKUTNYA (AK Kenaikan Pangkat)
-// Logika: Jika saat ini III/c (Penata), butuh 100 poin lagi untuk ke III/d
 const kamusPangkat = [
   { golru: 'II/c', nama: 'Pengatur', ak_kp: 20 },
   { golru: 'II/d', nama: 'Pengatur Tk.I', ak_kp: 20 },
   { golru: 'III/a', nama: 'Penata Muda', ak_kp: 50 },
-  { golru: 'III/b', nama: 'Penata Muda Tk.I', ak_kp: 50 }, // Umumnya 50 untuk ke III/c
+  { golru: 'III/b', nama: 'Penata Muda Tk.I', ak_kp: 50 },
   { golru: 'III/c', nama: 'Penata', ak_kp: 100 },
   { golru: 'III/d', nama: 'Penata Tk.I', ak_kp: 100 },
   { golru: 'IV/a', nama: 'Pembina', ak_kp: 150 },
   { golru: 'IV/b', nama: 'Pembina Tk.I', ak_kp: 150 },
-  { golru: 'IV/c', nama: 'Pembina Utama Muda', ak_kp: 150 }, // Disesuaikan
-  { golru: 'IV/d', nama: 'Pembina Utama Madya', ak_kp: 200 }, // Disesuaikan
+  { golru: 'IV/c', nama: 'Pembina Utama Muda', ak_kp: 150 },
+  { golru: 'IV/d', nama: 'Pembina Utama Madya', ak_kp: 200 },
 ]
 
 // Syarat AK untuk Naik Jenjang Jabatan (AK Kenaikan Jenjang)
+// Kita tambahkan 'keyword' agar bisa mendeteksi dari string seperti "Statistisi Muda"
 const kamusJabatan = [
-  { nama: 'Ahli Pertama', target_jenjang: 100, next: 'Ahli Muda' },
-  { nama: 'Ahli Muda', target_jenjang: 200, next: 'Ahli Madya' },
-  { nama: 'Ahli Madya', target_jenjang: 450, next: 'Ahli Utama' },
-  { nama: 'Terampil', target_jenjang: 40, next: 'Mahir' },
-  { nama: 'Mahir', target_jenjang: 100, next: 'Penyelia' },
-  // Jabatan Puncak tidak punya target jenjang lagi
-  { nama: 'Ahli Utama', target_jenjang: null, next: null },
-  { nama: 'Penyelia', target_jenjang: null, next: null },
+  { keyword: 'pertama', nama: 'Ahli Pertama', target_jenjang: 100, next: 'Ahli Muda' },
+  { keyword: 'muda', nama: 'Ahli Muda', target_jenjang: 200, next: 'Ahli Madya' },
+  { keyword: 'madya', nama: 'Ahli Madya', target_jenjang: 450, next: 'Ahli Utama' },
+  { keyword: 'utama', nama: 'Ahli Utama', target_jenjang: null, next: null },
+  { keyword: 'terampil', nama: 'Terampil', target_jenjang: 40, next: 'Mahir' },
+  { keyword: 'mahir', nama: 'Mahir', target_jenjang: 100, next: 'Penyelia' },
+  { keyword: 'penyelia', nama: 'Penyelia', target_jenjang: null, next: null },
 ]
 
 // =====================================================================
-// 2. MOCKUP DATA PEGAWAI (DENGAN TOTAL AK SAAT INI)
+// 2. AMBIL DATA PEGAWAI DARI PINIA
 // =====================================================================
-// Di Laravel nanti, field 'total_ak_kumulatif' ini diambil dari SUM(riwayat_ak)
-const pegawaiList = ref([
-  { id: 1, nama: 'Delly Rakasiwi', nip: '19910305...', jabatan: 'Ahli Muda', pangkat: 'Penata (III/c)', total_ak_kumulatif: 72.251 }, 
-  { id: 2, nama: 'Budi Santoso', nip: '19850101...', jabatan: 'Ahli Muda', pangkat: 'Penata Tk.I (III/d)', total_ak_kumulatif: 105.500 },
-  { id: 3, nama: 'Siti Aminah', nip: '19900202...', jabatan: 'Ahli Pertama', pangkat: 'Penata Muda Tk.I (III/b)', total_ak_kumulatif: 48.000 },
-  { id: 4, nama: 'Agus Wijaya', nip: '19820310...', jabatan: 'Ahli Madya', pangkat: 'Pembina (IV/a)', total_ak_kumulatif: 145.000 },
-  { id: 5, nama: 'Rina Kartika', nip: '19930412...', jabatan: 'Ahli Pertama', pangkat: 'Penata Muda (III/a)', total_ak_kumulatif: 52.500 },
-])
+const store = usePegawaiStore()
+const pegawaiList = computed(() => store.pegawaiList)
 
 const activeTab = ref('kp') // 'kp' = Kenaikan Pangkat, 'kj' = Kenaikan Jenjang
 
@@ -53,7 +47,7 @@ const activeTab = ref('kp') // 'kp' = Kenaikan Pangkat, 'kj' = Kenaikan Jenjang
 // Analisis Kenaikan Pangkat
 const analisisKP = computed(() => {
   return pegawaiList.value.map(peg => {
-    // Ambil kode golru dari string pangkat (misal: "Penata (III/c)" -> "III/c")
+    // Ambil kode golru (misal: "Penata (III/c)" -> "III/c")
     const match = peg.pangkat.match(/\((.*?)\)/)
     const golruSaatIni = match ? match[1] : ''
     
@@ -76,16 +70,16 @@ const analisisKP = computed(() => {
 // Analisis Kenaikan Jenjang
 const analisisKJ = computed(() => {
   return pegawaiList.value.map(peg => {
-    // Bersihkan nama jabatan (misal: "Pranata Komputer Ahli Muda" -> "Ahli Muda")
-    // Logic sederhana: cari kata kunci jenjang di dalam string jabatan
-    let jenjangSaatIni = kamusJabatan.find(j => peg.jabatan.includes(j.nama))
+    // Deteksi jenjang berdasarkan keyword dari nama jabatannya
+    const jabatanLower = peg.jabatan.toLowerCase()
+    let jenjangSaatIni = kamusJabatan.find(j => jabatanLower.includes(j.keyword))
     
     if (!jenjangSaatIni) return { ...peg, status: 'Tidak Teridentifikasi' }
 
     const target = jenjangSaatIni.target_jenjang
     
     // Jika null berarti sudah puncak
-    if (target === null) return { ...peg, status: 'Jabatan Puncak', kekurangan: 0, progress: 100 }
+    if (target === null) return { ...peg, next_jenjang: '-', target_poin: null, kekurangan: 0, status: 'Jabatan Puncak', progress: 100 }
 
     const kekurangan = target - peg.total_ak_kumulatif
     const isEligible = kekurangan <= 0
@@ -107,10 +101,22 @@ const stats = computed(() => {
   const siapKJ = analisisKJ.value.filter(p => p.status === 'Siap Uji Kompetensi').length
   return { siapKP, siapKJ }
 })
+
+// Hapus kode lama, ganti dengan ini:
+const updateStatusPegawai = () => {
+  // 1. Panggil action dari Pinia untuk mengubah status
+  store.updateStatusPegawai(selectedPegawai.value.id, formStatus.value.status)
+  
+  // 2. Tutup Modal
+  showModalStatus.value = false
+  
+  // (Opsional) Reset form status
+  formStatus.value.status = ''
+}
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto space-y-6">
+  <div class="max-w-7xl mx-auto space-y-6 pb-10">
     
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
@@ -173,7 +179,7 @@ const stats = computed(() => {
               <tr v-for="peg in analisisKP" :key="peg.id" class="hover:bg-gray-50/50 transition-colors">
                 <td class="px-6 py-4">
                   <div class="font-bold text-gray-900">{{ peg.nama }}</div>
-                  <div class="text-xs text-gray-500">{{ peg.nip }}</div>
+                  <div class="text-xs text-gray-500 mt-0.5">{{ peg.nip }} | {{ peg.unit_kerja }}</div>
                 </td>
                 <td class="px-6 py-4 text-gray-600">{{ peg.pangkat }}</td>
                 <td class="px-6 py-4 text-center font-bold text-bps-blue">{{ peg.total_ak_kumulatif.toFixed(3) }}</td>
@@ -186,12 +192,12 @@ const stats = computed(() => {
                     <span>✅</span> Terpenuhi
                   </div>
                   <div class="w-24 h-1.5 bg-gray-200 rounded-full mt-1.5 overflow-hidden">
-                    <div class="h-full bg-bps-blue rounded-full" :style="{ width: peg.progress + '%' }"></div>
+                    <div class="h-full bg-bps-blue rounded-full transition-all duration-500" :style="{ width: peg.progress + '%' }"></div>
                   </div>
                 </td>
                 <td class="px-6 py-4 text-center">
                   <span :class="[
-                    'px-3 py-1 rounded-full text-xs font-bold border',
+                    'px-3 py-1 rounded-full text-xs font-bold border inline-block w-36',
                     peg.status === 'Memenuhi Syarat' 
                       ? 'bg-green-100 text-green-700 border-green-200' 
                       : 'bg-red-50 text-red-600 border-red-200'
@@ -205,7 +211,7 @@ const stats = computed(() => {
         </div>
       </div>
 
-      <div v-else class="animate-fade-in">
+      <div v-if="activeTab === 'kj'" class="animate-fade-in">
         <div class="p-4 bg-blue-50 border-b border-blue-100 text-xs text-blue-800 flex items-center gap-2">
           <span>💡</span>
           <span>Menampilkan syarat akumulasi AK untuk mengikuti <strong>Uji Kompetensi</strong> ke jenjang jabatan setingkat lebih tinggi.</span>
@@ -226,15 +232,15 @@ const stats = computed(() => {
               <tr v-for="peg in analisisKJ" :key="peg.id" class="hover:bg-gray-50/50 transition-colors">
                 <td class="px-6 py-4">
                   <div class="font-bold text-gray-900">{{ peg.nama }}</div>
-                  <div class="text-xs text-gray-500">{{ peg.nip }}</div>
+                  <div class="text-xs text-gray-500 mt-0.5">{{ peg.nip }} | {{ peg.unit_kerja }}</div>
                 </td>
                 <td class="px-6 py-4">
-                  <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-medium border border-gray-200">
+                  <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-medium border border-gray-200">
                     {{ peg.jabatan }}
                   </span>
                 </td>
                 <td class="px-6 py-4 text-center text-xs font-semibold text-gray-500">
-                  {{ peg.next_jenjang || '-' }}
+                  {{ peg.next_jenjang }}
                 </td>
                 <td class="px-6 py-4 text-center font-bold text-bps-blue">{{ peg.total_ak_kumulatif.toFixed(3) }}</td>
                 <td class="px-6 py-4 text-center">
@@ -248,7 +254,7 @@ const stats = computed(() => {
                 </td>
                 <td class="px-6 py-4 text-center">
                   <span :class="[
-                    'px-3 py-1 rounded-full text-xs font-bold border',
+                    'px-3 py-1 rounded-full text-xs font-bold border inline-block w-40',
                     peg.status === 'Siap Uji Kompetensi' 
                       ? 'bg-blue-100 text-blue-700 border-blue-200' 
                       : peg.status === 'Jabatan Puncak'

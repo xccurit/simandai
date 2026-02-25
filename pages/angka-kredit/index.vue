@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { usePegawaiStore } from '~/stores/usePegawaiStore'
 
 // =====================================================================
 // 1. MASTER DATA & UTILITAS
@@ -9,6 +10,12 @@ const formatTanggal = (date) => {
   const d = new Date(date)
   const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+}
+
+// Helper Nama Bulan
+const getNamaBulan = (bulanIndex) => {
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+  return months[bulanIndex - 1] || months[bulanIndex] || ''
 }
 
 const getKodeJF = (jabatan) => {
@@ -49,13 +56,13 @@ const kamusPangkat = [
 ]
 
 const kamusJabatan = [
-  { nama: 'Ahli Utama', koef_tahun: 50, target_jenjang: null },
-  { nama: 'Ahli Madya', koef_tahun: 37.5, target_jenjang: 450 },
-  { nama: 'Ahli Muda', koef_tahun: 25, target_jenjang: 200 },
-  { nama: 'Ahli Pertama', koef_tahun: 12.5, target_jenjang: 100 },
-  { nama: 'Penyelia', koef_tahun: 25, target_jenjang: null },
-  { nama: 'Mahir', koef_tahun: 12.5, target_jenjang: 100 },
-  { nama: 'Terampil', koef_tahun: 5, target_jenjang: 40 },
+  { keyword: 'utama', nama: 'Ahli Utama', koef_tahun: 50, target_jenjang: null },
+  { keyword: 'madya', nama: 'Ahli Madya', koef_tahun: 37.5, target_jenjang: 450 },
+  { keyword: 'muda', nama: 'Ahli Muda', koef_tahun: 25, target_jenjang: 200 },
+  { keyword: 'pertama', nama: 'Ahli Pertama', koef_tahun: 12.5, target_jenjang: 100 },
+  { keyword: 'penyelia', nama: 'Penyelia', koef_tahun: 25, target_jenjang: null },
+  { keyword: 'mahir', nama: 'Mahir', koef_tahun: 12.5, target_jenjang: 100 },
+  { keyword: 'terampil', nama: 'Terampil', koef_tahun: 5, target_jenjang: 40 },
 ]
 
 const kamusPredikat = [
@@ -67,26 +74,13 @@ const kamusPredikat = [
 ]
 
 // =====================================================================
-// 2. DATA PEGAWAI (13 Data Dummy)
+// 2. DATA DARI PINIA
 // =====================================================================
-const pegawaiList = ref([
-  { id: 1, nip: '198501012010011001', nama: 'Budi Santoso', jabatan: 'Statistisi Muda', pangkat: 'Penata (III/c)', target_ak_tahunan: 25, unit_kerja: 'BPS Provinsi Kalimantan Tengah', status_kepegawaian: 'Aktif', karpeg: 'B-010101', ttl: 'Palangka Raya, 10 Jan 1985', jk: 'Laki-laki' },
-  { id: 2, nip: '199002022015032005', nama: 'Siti Aminah', jabatan: 'Pranata Komputer Pertama', pangkat: 'Penata Muda Tk. I (III/b)', target_ak_tahunan: 12.5, unit_kerja: 'BPS Kab. Kapuas', status_kepegawaian: 'Aktif', karpeg: 'B-020202', ttl: 'Kapuas, 02 Feb 1990', jk: 'Perempuan' },
-  { id: 3, nip: '198203102008041002', nama: 'Agus Wijaya', jabatan: 'Statistisi Ahli Madya', pangkat: 'Pembina (IV/a)', target_ak_tahunan: 37.5, unit_kerja: 'BPS Provinsi Kalimantan Tengah', status_kepegawaian: 'Sedang Ukom', karpeg: 'B-030303', ttl: 'Banjarmasin, 10 Mar 1982', jk: 'Laki-laki' },
-  { id: 4, nip: '199304122018012009', nama: 'Rina Kartika', jabatan: 'Statistisi Pertama', pangkat: 'Penata Muda (III/a)', target_ak_tahunan: 12.5, unit_kerja: 'BPS Kab. Kotawaringin Timur', status_kepegawaian: 'Aktif', karpeg: 'B-040404', ttl: 'Sampit, 12 Apr 1993', jk: 'Perempuan' },
-  { id: 5, nip: '197509091998021001', nama: 'Dedi Mulyadi', jabatan: 'Pranata Komputer Madya', pangkat: 'Pembina (IV/a)', target_ak_tahunan: 37.5, unit_kerja: 'BPS Provinsi Kalimantan Tengah', status_kepegawaian: 'Aktif', karpeg: 'B-050505', ttl: 'Bandung, 09 Sep 1975', jk: 'Laki-laki' },
-  { id: 6, nip: '198811222014022003', nama: 'Linda Wati', jabatan: 'Statistisi Muda', pangkat: 'Penata Tk. I (III/d)', target_ak_tahunan: 25, unit_kerja: 'BPS Kab. Barito Selatan', status_kepegawaian: 'Aktif', karpeg: 'B-060606', ttl: 'Buntok, 22 Nov 1988', jk: 'Perempuan' },
-  { id: 7, nip: '199505152019031008', nama: 'Ahmad Fauzi', jabatan: 'Pranata Komputer Pertama', pangkat: 'Penata Muda (III/a)', target_ak_tahunan: 12.5, unit_kerja: 'BPS Kab. Lamandau', status_kepegawaian: 'Proses SK', karpeg: 'B-070707', ttl: 'Nanga Bulik, 15 Mei 1995', jk: 'Laki-laki' },
-  { id: 8, nip: '198012122005012004', nama: 'Dewi Lestari', jabatan: 'Statistisi Madya', pangkat: 'Pembina Tk. I (IV/b)', target_ak_tahunan: 37.5, unit_kerja: 'BPS Provinsi Kalimantan Tengah', status_kepegawaian: 'Aktif', karpeg: 'B-080808', ttl: 'Palangka Raya, 12 Des 1980', jk: 'Perempuan' },
-  { id: 9, nip: '199107072015021002', nama: 'Hendra Gunawan', jabatan: 'Statistisi Pertama', pangkat: 'Penata Muda Tk. I (III/b)', target_ak_tahunan: 12.5, unit_kerja: 'BPS Kab. Seruyan', status_kepegawaian: 'Aktif', karpeg: 'B-090909', ttl: 'Kuala Pembuang, 07 Jul 1991', jk: 'Laki-laki' },
-  { id: 10, nip: '198608082011012006', nama: 'Maya Sari', jabatan: 'Pranata Komputer Muda', pangkat: 'Penata (III/c)', target_ak_tahunan: 25, unit_kerja: 'BPS Kab. Katingan', status_kepegawaian: 'Aktif', karpeg: 'B-101010', ttl: 'Kasongan, 08 Agu 1986', jk: 'Perempuan' },
-  { id: 11, nip: '199403032020121005', nama: 'Rizky Aditya', jabatan: 'Statistisi Pertama', pangkat: 'Penata Muda (III/a)', target_ak_tahunan: 12.5, unit_kerja: 'BPS Kab. Sukamara', status_kepegawaian: 'Aktif', karpeg: 'B-111111', ttl: 'Sukamara, 03 Mar 1994', jk: 'Laki-laki' },
-  { id: 12, nip: '198302022009032007', nama: 'Sari Indah', jabatan: 'Statistisi Muda', pangkat: 'Penata Tk. I (III/d)', target_ak_tahunan: 25, unit_kerja: 'BPS Kota Palangka Raya', status_kepegawaian: 'Aktif', karpeg: 'B-121212', ttl: 'Palangka Raya, 02 Feb 1983', jk: 'Perempuan' },
-  { id: 13, nip: '199103052014101002', nama: 'Delly Rakasiwi, SST', jabatan: 'Pranata Komputer Ahli Muda', pangkat: 'Penata (III/c)', target_ak_tahunan: 25, unit_kerja: 'BPS Provinsi Kalimantan Tengah', status_kepegawaian: 'Aktif', karpeg: 'B-08007477', ttl: 'Jakarta, 5 Maret 1991', jk: 'Laki-laki' },
-])
+const store = usePegawaiStore()
+const pegawaiList = computed(() => store.pegawaiList)
 
 // =====================================================================
-// 3. LOGIKA PENCARIAN & PAGINATION
+// 3. PENCARIAN & PAGINATION
 // =====================================================================
 const searchQuery = ref('')
 const currentPage = ref(1)
@@ -106,52 +100,54 @@ const paginatedPegawai = computed(() => {
 })
 
 // =====================================================================
-// 4. LOGIKA DETAIL VIEW & CRUD AK
+// 4. DETAIL VIEW & CRUD AK
 // =====================================================================
 const selectedPegawai = ref(null)
 
 const lihatDetailAK = (pegawai) => { selectedPegawai.value = pegawai }
 const kembaliKeDaftar = () => { selectedPegawai.value = null }
 
-const riwayatAK = ref([
-  { id: 101, tahun: 2022, bulan: 12, jabatan: 'Ahli Pertama', predikat: '-', ak_didapat: 7.668, sumber: 'Migrasi Data Lama' },
-  { id: 102, tahun: 2023, bulan: 10, jabatan: 'Ahli Pertama', predikat: 'Baik', ak_didapat: 10.417, sumber: 'Konversi SKP' },
-  { id: 103, tahun: 2023, bulan: 2, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 4.167, sumber: 'Konversi SKP' },
-  { id: 104, tahun: 2024, bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 25.000, sumber: 'Konversi SKP' },
-  { id: 105, tahun: 2025, bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik', ak_didapat: 25.000, sumber: 'Konversi SKP' },
-])
+const riwayatAK = computed(() => {
+  if (!selectedPegawai.value) return []
+  return store.riwayatList.filter(r => r.pegawai_id === selectedPegawai.value.id)
+})
 
 const totalAkumulasi = computed(() => {
-  return riwayatAK.value.reduce((sum, item) => sum + parseFloat(item.ak_didapat), 0).toFixed(3)
+  return selectedPegawai.value ? selectedPegawai.value.total_ak_kumulatif.toFixed(3) : '0.000'
 })
 
 const analisisKelayakan = computed(() => {
   if (!selectedPegawai.value) return { eligible: false }
-  
   const match = selectedPegawai.value.pangkat.match(/\((.*?)\)/)
   const golru = match ? match[1] : ''
   const syarat = kamusPangkat.find(p => p.golru === golru)
   
   if (!syarat) return { eligible: false, pesan: 'Pangkat Invalid' }
+  const totalAK = parseFloat(selectedPegawai.value.total_ak_kumulatif)
+  const targetPangkat = syarat.ak_kp
+  let kurangPangkat = targetPangkat - totalAK
   
-  const target = syarat.ak_kp
-  const kekurangan = target - totalAkumulasi.value
-  
-  const jabInfo = kamusJabatan.find(j => selectedPegawai.value.jabatan.includes(j.nama))
+  const jabatanLower = selectedPegawai.value.jabatan.toLowerCase()
+  const jabInfo = kamusJabatan.find(j => jabatanLower.includes(j.keyword))
   const targetJenjang = jabInfo ? jabInfo.target_jenjang : 0
-  const kekuranganJenjang = targetJenjang - totalAkumulasi.value
+  let kurangJenjang = targetJenjang ? (targetJenjang - totalAK) : 0
   
-  if (kekurangan <= 0) {
-    return { eligible: true, target: target, kekurangan: 0, targetJenjang: targetJenjang, kekuranganJenjang: kekuranganJenjang > 0 ? kekuranganJenjang.toFixed(3) : 0, pesan: 'MEMENUHI SYARAT PANGKAT', warna: 'bg-green-100 text-green-700' }
-  } else {
-    return { eligible: false, target: target, kekurangan: kekurangan.toFixed(3), targetJenjang: targetJenjang, kekuranganJenjang: kekuranganJenjang > 0 ? kekuranganJenjang.toFixed(3) : 0, pesan: 'BELUM MEMENUHI', warna: 'bg-red-50 text-red-600' }
+  return { 
+    eligible: kurangPangkat <= 0, 
+    targetPangkat: targetPangkat, 
+    kurangPangkat: kurangPangkat > 0 ? kurangPangkat.toFixed(3) : '0', 
+    targetJenjang: targetJenjang || '-', 
+    kurangJenjang: kurangJenjang > 0 ? kurangJenjang.toFixed(3) : '0', 
+    pesan: kurangPangkat <= 0 ? 'MEMENUHI SYARAT PANGKAT' : 'BELUM MEMENUHI', 
+    warna: kurangPangkat <= 0 ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600' 
   }
 })
 
+// MODAL KALKULATOR
 const showModalKalkulator = ref(false)
 const isEditing = ref(false)
 const editingId = ref(null)
-const formKalkulasi = ref({ tahun: new Date().getFullYear(), bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik' })
+const formKalkulasi = ref({ tahun: new Date().getFullYear(), bulan_selesai: 12, bulan: 12, jabatan: 'Ahli Muda', predikat: 'Baik' })
 
 const hasilKalkulasi = computed(() => {
   const selectedJabatan = kamusJabatan.find(j => j.nama === formKalkulasi.value.jabatan)
@@ -162,108 +158,171 @@ const hasilKalkulasi = computed(() => {
 
 const bukaModalTambah = () => {
   isEditing.value = false; editingId.value = null
-  formKalkulasi.value = { tahun: new Date().getFullYear(), bulan: 12, jabatan: selectedPegawai.value?.jabatan.includes('Muda') ? 'Ahli Muda' : 'Ahli Pertama', predikat: 'Baik' }
+  formKalkulasi.value = { tahun: new Date().getFullYear(), bulan_selesai: 12, bulan: 12, jabatan: selectedPegawai.value?.jabatan.includes('Muda') ? 'Ahli Muda' : 'Ahli Pertama', predikat: 'Baik' }
   showModalKalkulator.value = true
 }
 
 const bukaModalEdit = (item) => {
   if (item.sumber === 'Migrasi Data Lama') { alert("Data Migrasi Lama tidak disarankan untuk diedit."); return }
   isEditing.value = true; editingId.value = item.id
-  formKalkulasi.value = { tahun: item.tahun, bulan: item.bulan, jabatan: item.jabatan, predikat: item.predikat }
+  formKalkulasi.value = { tahun: item.tahun, bulan_selesai: item.bulan_selesai || item.bulan, bulan: item.bulan, jabatan: item.jabatan, predikat: item.predikat }
   showModalKalkulator.value = true
 }
 
 const simpanKalkulasi = () => {
-  const dataBaru = { id: isEditing.value ? editingId.value : Date.now(), tahun: formKalkulasi.value.tahun, bulan: formKalkulasi.value.bulan, jabatan: formKalkulasi.value.jabatan, predikat: formKalkulasi.value.predikat, ak_didapat: parseFloat(hasilKalkulasi.value), sumber: 'Konversi SKP' }
-  if (isEditing.value) {
-    const index = riwayatAK.value.findIndex(x => x.id === editingId.value)
-    if (index !== -1) riwayatAK.value[index] = dataBaru
-  } else { riwayatAK.value.push(dataBaru) }
+  const dataBaru = { 
+    id: isEditing.value ? editingId.value : Date.now(), 
+    pegawai_id: selectedPegawai.value.id,
+    tahun: formKalkulasi.value.tahun, 
+    bulan_selesai: parseInt(formKalkulasi.value.bulan_selesai),
+    bulan: parseInt(formKalkulasi.value.bulan), 
+    jabatan: formKalkulasi.value.jabatan, 
+    predikat: formKalkulasi.value.predikat, 
+    ak_didapat: parseFloat(hasilKalkulasi.value), 
+    sumber: 'Konversi SKP' 
+  }
+  store.simpanRiwayat(dataBaru, isEditing.value)
   showModalKalkulator.value = false
 }
 
-const hapusItem = (id) => { if (confirm("Hapus data ini?")) riwayatAK.value = riwayatAK.value.filter(x => x.id !== id) }
+const hapusItem = (id) => { 
+  if (confirm("Hapus data ini?")) { store.hapusRiwayat(id, selectedPegawai.value.id) } 
+}
 
 // =====================================================================
-// 5. LOGIKA PRINTING & UNDUH PDF
+// 5. LOGIKA PRINTING (DINAMIS S.D BULAN)
 // =====================================================================
 const showModalPrintKonversi = ref(false)
 const showModalPrintAkumulasi = ref(false)
 const showModalPrintPAK = ref(false)
 const showModalStatus = ref(false)
-
 const printData = ref(null)
 const formStatus = ref({ status: '', catatan: '' })
-const isGeneratingPDF = ref(false)
 
+// A. DINAMIS KONVERSI TAHUNAN (Per Item)
 const cetakLaporanTahunan = (item) => {
-  const jabInfo = kamusJabatan.find(j => item.jabatan.includes(j.nama))
+  const jabatanLower = selectedPegawai.value.jabatan.toLowerCase()
+  const jabInfo = kamusJabatan.find(j => item.jabatan.toLowerCase().includes(j.keyword)) || kamusJabatan.find(j => jabatanLower.includes(j.keyword))
   const predInfo = kamusPredikat.find(p => p.nama === item.predikat)
+  
+  const endMonth = item.bulan_selesai || (item.bulan === 12 ? 12 : item.bulan)
+  const duration = item.bulan
+  const startMonthCalc = (endMonth - duration + 1)
+  const startMonth = startMonthCalc > 0 ? startMonthCalc : 1
+
+  const masaPenilaian = startMonth === endMonth 
+    ? `${getNamaBulan(endMonth)} ${item.tahun}`
+    : `${getNamaBulan(startMonth)} s.d ${getNamaBulan(endMonth)} ${item.tahun}`
+
   printData.value = { 
     ...item, 
     pegawai: selectedPegawai.value, 
     koef_tahun: jabInfo ? jabInfo.koef_tahun : 0, 
     persen: predInfo ? (predInfo.persen * 100) : 0, 
     kode_jf: getKodeJF(selectedPegawai.value.jabatan),
+    masa_penilaian: masaPenilaian, 
     tanggal_ttd: formatTanggal(new Date())
   }
   showModalPrintKonversi.value = true
 }
 
-const cetakAkumulasi = () => {
+// B. DINAMIS AKUMULASI & PAK (Mencari Data Terbaru)
+const siapkanDataAkumulasi = () => {
   const riwayatLengkap = riwayatAK.value.map(item => {
-     const jabInfo = kamusJabatan.find(j => item.jabatan.includes(j.nama))
+     const jabInfo = kamusJabatan.find(j => item.jabatan.toLowerCase().includes(j.keyword))
      const predInfo = kamusPredikat.find(p => p.nama === item.predikat)
      return { ...item, koef_tahun: jabInfo ? jabInfo.koef_tahun : 0, persen: predInfo ? (predInfo.persen * 100) : 0 }
   })
-  printData.value = { 
+  
+  // CARI DATA TERBARU
+  let latestItem = null
+  if (riwayatAK.value.length > 0) {
+    const sorted = [...riwayatAK.value].sort((a, b) => {
+       if (b.tahun !== a.tahun) return b.tahun - a.tahun 
+       const endA = a.bulan_selesai || (a.bulan === 12 ? 12 : a.bulan)
+       const endB = b.bulan_selesai || (b.bulan === 12 ? 12 : b.bulan)
+       return endB - endA 
+    })
+    latestItem = sorted[0]
+  }
+
+  let masaPenilaian = ""
+  if (latestItem) {
+    const endMonth = latestItem.bulan_selesai || (latestItem.bulan === 12 ? 12 : latestItem.bulan)
+    masaPenilaian = `s.d ${getNamaBulan(endMonth)} ${latestItem.tahun}`
+  } else {
+    const now = new Date()
+    masaPenilaian = `s.d ${getNamaBulan(now.getMonth() + 1)} ${now.getFullYear()}`
+  }
+
+  return { 
     pegawai: selectedPegawai.value, 
     riwayat: riwayatLengkap, 
     total_ak: totalAkumulasi.value, 
+    analisis: analisisKelayakan.value,
     kode_jf: getKodeJF(selectedPegawai.value.jabatan),
+    masa_penilaian: masaPenilaian, 
     tanggal_ttd: formatTanggal(new Date())
   }
+}
+
+const cetakAkumulasi = () => {
+  printData.value = siapkanDataAkumulasi()
   showModalPrintAkumulasi.value = true
 }
 
 const cetakFormPAK = () => {
   if (!analisisKelayakan.value.eligible) { alert("Syarat Angka Kredit belum terpenuhi."); return }
-  printData.value = { 
-    pegawai: selectedPegawai.value, 
-    total_ak: totalAkumulasi.value, 
-    analisis: analisisKelayakan.value, 
-    kode_jf: getKodeJF(selectedPegawai.value.jabatan),
-    tanggal_ttd: formatTanggal(new Date())
-  }
+  printData.value = siapkanDataAkumulasi()
   showModalPrintPAK.value = true
 }
 
-// 🚀 FUNGSI PDF SAKTI (TANPA MERUSAK POSISI LAYOUT)
-const unduhPDF = async (elementId, namaFile) => {
-  isGeneratingPDF.value = true
-  try {
-    const html2pdf = (await import('html2pdf.js')).default
-    const element = document.getElementById(elementId)
-    
-    // RAHASIA AGAR TIDAK HANCUR: Set margin ke 0! 
-    // Margin di-handle oleh padding container (px-12 py-10) di HTML.
-    const opt = {
-      margin:       0, 
-      filename:     `${namaFile}.pdf`,
-      image:        { type: 'jpeg', quality: 1 },
-      html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+// 🖨️ FUNGSI PRINT BROWSER BAWAAN (TANPA LIBRARY)
+const unduhPDF = (elementId) => {
+  const originalElement = document.getElementById(elementId);
+  if (!originalElement) return;
+
+  const originalBodyChildren = Array.from(document.body.children);
+  originalBodyChildren.forEach(child => {
+    if (child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE') {
+      child.setAttribute('data-original-display', child.style.display); 
+      child.style.display = 'none'; 
     }
-    await html2pdf().set(opt).from(element).save()
-  } catch (error) {
-    console.error("Error creating PDF:", error)
-    alert("Terjadi kesalahan saat mengunduh PDF.")
-  } finally {
-    isGeneratingPDF.value = false
-  }
+  });
+
+  const printContainer = document.createElement('div');
+  printContainer.id = 'print-target';
+  printContainer.style.position = 'absolute';
+  printContainer.style.top = '0';
+  printContainer.style.left = '0';
+  printContainer.style.width = '210mm';
+  printContainer.style.height = '297mm';
+  printContainer.style.backgroundColor = 'white';
+  
+  const clonedContent = originalElement.cloneNode(true);
+  clonedContent.classList.remove('shadow-2xl', 'overflow-y-auto', 'overflow-hidden');
+  clonedContent.style.boxShadow = 'none';
+  clonedContent.style.margin = '0';
+  
+  printContainer.appendChild(clonedContent);
+  document.body.appendChild(printContainer);
+
+  setTimeout(() => {
+    window.print();
+    
+    document.body.removeChild(printContainer);
+    originalBodyChildren.forEach(child => {
+      if (child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE') {
+        child.style.display = child.getAttribute('data-original-display') || '';
+      }
+    });
+  }, 150);
 }
 
-const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = formStatus.value.status; showModalStatus.value = false }
+const updateStatusPegawai = () => { 
+  store.updateStatusPegawai(selectedPegawai.value.id, formStatus.value.status)
+  showModalStatus.value = false; formStatus.value.status = ''
+}
 </script>
 
 <template>
@@ -272,7 +331,7 @@ const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = f
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Manajemen Angka Kredit (AK)</h2>
-        <p class="text-sm text-gray-500 mt-1">Cari pegawai, kelola AK, dan cetak dokumen resmi (PDF)</p>
+        <p class="text-sm text-gray-500 mt-1">Cari pegawai, kelola AK, dan cetak dokumen resmi</p>
       </div>
     </div>
 
@@ -358,12 +417,18 @@ const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = f
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead class="bg-gray-50 text-xs uppercase border-b text-gray-600">
-              <tr><th class="px-6 py-3">Tahun</th><th class="px-6 py-3 text-center">Bulan</th><th class="px-6 py-3">Jabatan</th><th class="px-6 py-3 text-center">Predikat</th><th class="px-6 py-3 text-right">AK Didapat</th><th class="px-6 py-3 text-center">Aksi / Cetak</th></tr>
+              <tr><th class="px-6 py-3">Tahun</th><th class="px-6 py-3 text-center">Bulan Akhir (Durasi)</th><th class="px-6 py-3">Jabatan</th><th class="px-6 py-3 text-center">Predikat</th><th class="px-6 py-3 text-right">AK Didapat</th><th class="px-6 py-3 text-center">Aksi / Cetak</th></tr>
             </thead>
             <tbody class="divide-y text-sm">
               <tr v-for="item in riwayatAK" :key="item.id" class="hover:bg-gray-50 group">
                 <td class="px-6 py-4 font-bold">{{ item.tahun }}</td>
-                <td class="px-6 py-4 text-center">{{ item.bulan }}</td>
+                <td class="px-6 py-4 text-center">
+                  <span v-if="item.sumber !== 'Migrasi Data Lama'">
+                    {{ getNamaBulan(item.bulan_selesai || item.bulan) }}<br>
+                    <span class="text-[10px] text-gray-500">({{ item.bulan }} Bulan)</span>
+                  </span>
+                  <span v-else class="text-gray-400">-</span>
+                </td>
                 <td class="px-6 py-4">{{ item.jabatan }}</td>
                 <td class="px-6 py-4 text-center"><span v-if="item.predikat !== '-'" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">{{ item.predikat }}</span><span v-else class="text-gray-400">-</span></td>
                 <td class="px-6 py-4 text-right font-bold text-bps-blue text-base">+{{ parseFloat(item.ak_didapat).toFixed(3) }}</td>
@@ -382,23 +447,49 @@ const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = f
     </div>
 
     <div v-if="showModalKalkulator" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-2xl w-[500px] shadow-2xl animate-scale-in">
+      <div class="bg-white rounded-2xl w-[600px] shadow-2xl animate-scale-in">
         <div class="bg-bps-blue px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
-          <h3 class="font-bold text-lg">{{ isEditing ? 'Edit Data' : 'Kalkulasi SKP Baru' }}</h3>
+          <h3 class="font-bold text-lg">{{ isEditing ? 'Edit Data SKP' : 'Kalkulasi SKP Baru' }}</h3>
           <button @click="showModalKalkulator = false" class="text-white hover:text-gray-200 text-2xl">&times;</button>
         </div>
         <div class="p-6 space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-             <div><label class="block text-xs font-bold mb-1">Tahun</label><input v-model="formKalkulasi.tahun" type="number" class="w-full p-2 border rounded"></div>
-             <div><label class="block text-xs font-bold mb-1">Bulan (Max 12)</label><input v-model="formKalkulasi.bulan" type="number" max="12" class="w-full p-2 border rounded"></div>
+          
+          <div class="grid grid-cols-3 gap-4">
+             <div>
+               <label class="block text-xs font-bold mb-1">Tahun Penilaian</label>
+               <input v-model="formKalkulasi.tahun" type="number" class="w-full p-2 border rounded outline-none focus:border-bps-blue">
+             </div>
+             <div>
+               <label class="block text-xs font-bold mb-1">Bulan Akhir Penilaian</label>
+               <select v-model="formKalkulasi.bulan_selesai" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue">
+                  <option value="1">Januari</option>
+                  <option value="2">Februari</option>
+                  <option value="3">Maret</option>
+                  <option value="4">April</option>
+                  <option value="5">Mei</option>
+                  <option value="6">Juni</option>
+                  <option value="7">Juli</option>
+                  <option value="8">Agustus</option>
+                  <option value="9">September</option>
+                  <option value="10">Oktober</option>
+                  <option value="11">November</option>
+                  <option value="12">Desember</option>
+               </select>
+             </div>
+             <div>
+               <label class="block text-xs font-bold mb-1">Durasi (Jumlah Bulan)</label>
+               <input v-model="formKalkulasi.bulan" type="number" max="12" class="w-full p-2 border rounded outline-none focus:border-bps-blue">
+             </div>
           </div>
-          <div><label class="block text-xs font-bold mb-1">Jabatan</label><select v-model="formKalkulasi.jabatan" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="j in kamusJabatan" :value="j.nama">{{ j.nama }} (Koefisien: {{ j.koef_tahun }})</option></select></div>
-          <div><label class="block text-xs font-bold mb-1">Predikat</label><select v-model="formKalkulasi.predikat" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="p in kamusPredikat" :value="p.nama">{{ p.nama }} ({{ p.persen * 100 }}%)</option></select></div>
-          <div class="p-4 bg-blue-50 border rounded text-center"><p class="text-xs uppercase font-bold text-blue-600 mb-1">Hasil AK</p><p class="text-3xl font-extrabold">{{ hasilKalkulasi }}</p></div>
+          
+          <div><label class="block text-xs font-bold mb-1">Jabatan Saat Evaluasi</label><select v-model="formKalkulasi.jabatan" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="j in kamusJabatan" :value="j.nama">{{ j.nama }} (Koefisien: {{ j.koef_tahun }})</option></select></div>
+          <div><label class="block text-xs font-bold mb-1">Predikat Kinerja</label><select v-model="formKalkulasi.predikat" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="p in kamusPredikat" :value="p.nama">{{ p.nama }} ({{ p.persen * 100 }}%)</option></select></div>
+          
+          <div class="p-4 bg-blue-50 border rounded text-center"><p class="text-xs uppercase font-bold text-blue-600 mb-1">Hasil Konversi Angka Kredit</p><p class="text-3xl font-extrabold">{{ hasilKalkulasi }}</p></div>
         </div>
         <div class="p-4 border-t flex justify-end gap-2 bg-gray-50 rounded-b-2xl">
           <button @click="showModalKalkulator = false" class="px-5 py-2 text-gray-600 font-semibold rounded hover:bg-gray-200">Batal</button>
-          <button @click="simpanKalkulasi" class="px-5 py-2 bg-bps-blue text-white rounded font-bold hover:bg-bps-dark">Simpan</button>
+          <button @click="simpanKalkulasi" class="px-5 py-2 bg-bps-blue text-white rounded font-bold hover:bg-bps-dark">Simpan Kalkulasi</button>
         </div>
       </div>
     </div>
@@ -422,12 +513,12 @@ const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = f
 
     <div v-if="showModalPrintKonversi" class="fixed inset-0 bg-black/70 flex justify-center z-50 p-4 overflow-y-auto">
       <div class="shadow-2xl relative mt-4 mb-10">
-        <div class="absolute top-0 right-[-140px] flex flex-col gap-2">
-          <button @click="unduhPDF('print-area-konversi', `Konversi_AK_${printData.tahun}`)" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 font-bold"><span v-if="isGeneratingPDF">⏳</span><span v-else>⬇️</span> Unduh PDF</button>
+        <div class="absolute top-0 right-[-140px] flex flex-col gap-2 no-print">
+          <button @click="unduhPDF('print-area-konversi')" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 font-bold"><span v-if="isGeneratingPDF">⏳</span><span v-else>🖨️</span> Cetak PDF</button>
           <button @click="showModalPrintKonversi = false" class="bg-gray-600 text-white px-4 py-2 rounded shadow hover:bg-gray-700 font-bold">Tutup</button>
         </div>
         
-        <div id="print-area-konversi" class="bg-white text-black px-12 py-10 w-[210mm] min-h-[297mm] flex flex-col text-[13px] leading-tight print-font">
+        <div id="print-area-konversi" class="bg-white text-black px-12 pt-16 pb-10 w-[210mm] min-h-[285mm] flex flex-col text-[13px] leading-tight print-font relative">
            
            <div class="relative flex justify-start items-center border-b-[3px] border-black pb-3">
              <img src="/logo-bps-kalteng1.png" alt="Logo BPS" class="absolute -left-12 top-0 w-[210px] h-auto" />
@@ -443,7 +534,7 @@ const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = f
            <div class="pb-4"></div>
 
            <div class="text-center font-bold text-[15px] underline mb-6 uppercase tracking-wide">KONVERSI PREDIKAT KINERJA KE ANGKA KREDIT</div>
-           <div class="flex justify-between mb-2"><div>Instansi<br>Badan Pusat Statistik</div><div class="text-right">Masa Penilaian :<br>Januari s.d Desember {{ printData.tahun }}</div></div>
+           <div class="flex justify-between mb-2"><div>Instansi<br>Badan Pusat Statistik</div><div class="text-right">Masa Penilaian :<br>{{ printData.masa_penilaian }}</div></div>
 
            <table class="w-full border-collapse border border-black mb-6">
              <tbody>
@@ -488,39 +579,40 @@ const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = f
                <div class="text-justify pr-10">
                  <p class="mb-20">Pejabat Penilai Kinerja</p>
                  <p class="font-bold underline">Agnes Widiastuti</p>
-              </div>
+               </div>
              </div>
            </div>
 
-           <div class="relative mt-auto pt-2 border-t-[1.5px] border-black text-[10.5px] text-justify font-sans leading-relaxed text-gray-700">
-             <img src="/balai.png" alt="Balai" class="absolute top-2 -right-2 w-[60px]" />
+           <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid black; position: relative;">
+              
+              <img src="/balai.png" style="position: absolute; right: 0; top: 6px; width: 60px; height: auto;" />
            </div>
-        </div>
+          </div>
       </div>
     </div>
 
     <div v-if="showModalPrintAkumulasi" class="fixed inset-0 bg-black/70 flex justify-center z-50 p-4 overflow-y-auto">
       <div class="shadow-2xl relative mt-4 mb-10">
-        <div class="absolute top-0 right-[-140px] flex flex-col gap-2">
-          <button @click="unduhPDF('print-area-akumulasi', `Akumulasi_AK_${printData.pegawai.nama}`)" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 font-bold"><span v-if="isGeneratingPDF">⏳</span><span v-else>⬇️</span> Unduh PDF</button>
+        <div class="absolute top-0 right-[-140px] flex flex-col gap-2 no-print">
+          <button @click="unduhPDF('print-area-akumulasi')" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 font-bold"><span v-if="isGeneratingPDF">⏳</span><span v-else>🖨️</span> Cetak PDF</button>
           <button @click="showModalPrintAkumulasi = false" class="bg-gray-600 text-white px-4 py-2 rounded shadow hover:bg-gray-700 font-bold">Tutup</button>
         </div>
         
-        <div id="print-area-akumulasi" class="bg-white text-black px-12 py-10 w-[210mm] min-h-[297mm] flex flex-col text-[13px] leading-tight print-font">
-           
+        <div id="print-area-akumulasi" class="bg-white text-black px-12 pt-16 pb-10 w-[210mm] min-h-[285mm] flex flex-col text-[13px] leading-tight print-font relative">
+
            <div class="relative flex justify-start items-center border-b-[3px] border-black pb-3">
-             <img src="/logo-bps-kalteng1.png" alt="Logo BPS" class="absolute -left-12 top-0 w-[210px] h-auto" />
+             <img src="/logo-bps-kalteng1.png" alt="Logo BPS" class="absolute -left-12 top-0 w-[190px] h-auto" />
              <div class="text ml-[160px] text relative -left-12"> 
                  <h1 class="text-[20px] text relative left-1 font-bold uppercase tracking-wider -m-1 leading-tight italic" style="font-family: Arial, sans-serif;">BADAN PUSAT STATISTIK</h1>
                  <h2 class="text-[20px] text relative left-1 font-bold uppercase tracking-wider -m-1 leading-tight italic" style="font-family: Arial, sans-serif;">PROVINSI KALIMANTAN TENGAH</h2>
                  <p class="text-[12px] m-0 leading-tight mt-1">Jl. Kapten Piere Tendean No. 6 Palangka Raya 73112</p>
                  <p class="text-[12px] m-0 leading-tight">Telp. (0536) 3228105, Fax.: (0536) 3221380,</p>
-                 <p class="text-[12px] m-0 leading-tight">Homepage: https://kalteng.bps.go.id/  E-mail: bps6200@bps.go.id</p>
+                 <p class="text-[12px] m-0 leading-tight">Homepage: https://kalteng.bps.go.id/ E-mail: bps6200@bps.go.id</p>
              </div>
            </div>
 
            <div class="text-center font-bold text-[15px] underline mb-6 uppercase tracking-wide pt-3">AKUMULASI ANGKA KREDIT</div>
-           <div class="flex justify-between mb-2"><div>Instansi<br>Badan Pusat Statistik</div><div class="text-right">Masa Penilaian :<br>s.d Desember 2025</div></div>
+           <div class="flex justify-between mb-2"><div>Instansi<br>Badan Pusat Statistik</div><div class="text-right">Masa Penilaian :<br>{{ printData.masa_penilaian }}</div></div>
 
            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px;">
              <tbody>
@@ -550,7 +642,7 @@ const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = f
                 <td style="border: 1px solid black; padding: 6px; font-weight: bold; width: 60px;">TAHUN</td>
                 <td style="border: 1px solid black; padding: 6px; font-weight: bold; width: 80px;">PERIODIK (BULAN)</td>
                 <td style="border: 1px solid black; padding: 6px; font-weight: bold;">PREDIKAT</td>
-                <td style="border: 1px solid black; padding: 6px; font-weight: bold; width: 80px;">PROSENTASE</td>
+                <td style="border: 1px solid black; padding: 6px; font-weight: bold; width: 80px;">PRESENTASE</td>
               </tr>
               <tr style="background-color: #f3f4f6;">
                 <td style="border: 1px solid black; padding: 2px;">1</td>
@@ -594,24 +686,23 @@ const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = f
              </div>
            </div>
 
-           <div style="margin-top: auto; padding-top: 10px; border-top: 1px solid black; position: relative;">
+           <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid black; position: relative;">
               
-              <img src="/balai.png" style="position: absolute; right: 0; top: 10px; width: 60px; height: auto;" />
+              <img src="/balai.png" style="position: absolute; right: 0; top: 6px; width: 60px; height: auto;" />
            </div>
-
         </div>
       </div>
     </div>
 
     <div v-if="showModalPrintPAK" class="fixed inset-0 bg-black/70 flex justify-center z-50 p-4 overflow-y-auto">
       <div class="shadow-2xl relative mt-4 mb-10">
-        <div class="absolute top-0 right-[-140px] flex flex-col gap-2">
-          <button @click="unduhPDF('print-area-pak', `Form_PAK_${printData.pegawai.nama}`)" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 font-bold"><span v-if="isGeneratingPDF">⏳</span><span v-else>⬇️</span> Unduh PDF</button>
+        <div class="absolute top-0 right-[-140px] flex flex-col gap-2 no-print">
+          <button @click="unduhPDF('print-area-pak')" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 font-bold"><span v-if="isGeneratingPDF">⏳</span><span v-else>🖨️</span> Cetak PDF</button>
           <button @click="showModalPrintPAK = false" class="bg-gray-600 text-white px-4 py-2 rounded shadow hover:bg-gray-700 font-bold">Tutup</button>
         </div>
         
-        <div id="print-area-pak" class="bg-white text-black px-12 py-10 w-[210mm] min-h-[297mm] flex flex-col text-[13px] leading-tight print-font">
-           
+        <div id="print-area-pak" class="bg-white text-black px-12 pt-6 pb-14 w-[210mm] min-h-[295mm] overflow-hidden flex flex-col text-[13px] leading-tight print-font border-box relative">
+
            <div class="relative flex justify-start items-center border-b-[3px] border-black pb-3">
              <img src="/logo-bps-kalteng1.png" alt="Logo BPS" class="absolute -left-12 top-0 w-[210px] h-auto" />
              <div class="text ml-[160px] text relative -left-12"> 
@@ -626,7 +717,7 @@ const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = f
            <div class="text-center font-bold text-[15px] underline uppercase mb-1 mt-4">PENETAPAN ANGKA KREDIT</div>
            <div class="text-center mb-4 font-semibold tracking-wider">NOMOR: 62000.0065/Konv/{{ printData.kode_jf }}/{{ new Date().getFullYear() }}</div>
            
-           <div class="flex justify-between mb-2"><div>Instansi<br>Badan Pusat Statistik</div><div class="text-right">Masa Penilaian :<br>s.d Desember 2025</div></div>
+           <div class="flex justify-between mb-2"><div>Instansi<br>Badan Pusat Statistik</div><div class="text-right">Masa Penilaian :<br>{{ printData.masa_penilaian }}</div></div>
 
            <table class="w-full border-collapse border border-black mb-4">
              <tbody>
@@ -667,8 +758,8 @@ const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = f
            <table class="w-full border-collapse border border-black text-center mb-6">
              <tbody>
               <tr class="font-bold bg-gray-100"><td class="border border-black px-2 text-left">Keterangan</td><td class="border border-black w-24">Pangkat</td><td class="border border-black w-32">Jenjang Jabatan</td></tr>
-              <tr><td class="border border-black px-2 text-left">Angka Kredit minimal yang harus dicapai</td><td class="border border-black">{{ printData.analisis.target }}</td><td class="border border-black">{{ printData.analisis.targetJenjang || '-' }}</td></tr>
-              <tr><td class="border border-black px-2 text-left font-bold text-green-700">Kekurangan Angka Kredit yang harus dicapai</td><td class="border border-black font-bold text-green-700">0</td><td class="border border-black font-bold" :class="printData.analisis.kekuranganJenjang == 0 ? 'text-green-700' : 'text-red-700'">{{ printData.analisis.kekuranganJenjang == 0 ? '0' : printData.analisis.kekuranganJenjang }}</td></tr>
+              <tr><td class="border border-black px-2 text-left">Angka Kredit minimal yang harus dicapai</td><td class="border border-black">{{ printData.analisis.targetPangkat }}</td><td class="border border-black">{{ printData.analisis.targetJenjang }}</td></tr>
+              <tr><td class="border border-black px-2 text-left font-bold text-green-700">Kekurangan Angka Kredit yang harus dicapai</td><td class="border border-black font-bold text-green-700">0</td><td class="border border-black font-bold" :class="printData.analisis.kurangJenjang == 0 ? 'text-green-700' : 'text-red-700'">{{ printData.analisis.kurangJenjang == 0 ? '0' : printData.analisis.kurangJenjang }}</td></tr>
              </tbody>
            </table>
 
@@ -691,11 +782,11 @@ const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = f
                <p class="font-bold underline">Agnes Widiastuti</p>
              </div>
            </div>
-
-           <div class="relative mt-auto pt-2 border-t-[1.5px] border-black text-[10.5px] text-justify font-sans leading-relaxed text-gray-700">
-             <img src="/balai.png" alt="Balai" class="absolute top-2 -right-2 w-[60px]" />
-           </div>
         </div>
+        <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid black; position: relative;">
+              
+              <img src="/balai.png" style="position: absolute; right: 0; top: 6px; width: 60px; height: auto;" />
+           </div>
       </div>
     </div>
 
@@ -703,14 +794,30 @@ const updateStatusPegawai = () => { selectedPegawai.value.status_kepegawaian = f
 </template>
 
 <style scoped>
-/* Import Font Roboto agar font terbaca rapi di PDF (Roboto adalah sans-serif) */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,600;0,700;1,400&display=swap');
 
-/* Terapkan font khusus ke semua area cetak (ditambah fallback ke sans-serif) */
 .print-font { font-family: 'Roboto', sans-serif !important; }
 
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 .animate-scale-in { animation: scaleIn 0.2s ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+/* GAYA KHUSUS SAAT PRINT/SAVE PDF (MENGGUNAKAN WINDOW.PRINT BROWSER) */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0 !important; 
+  }
+  
+  ::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: white !important;
+  }
+}
 </style>
