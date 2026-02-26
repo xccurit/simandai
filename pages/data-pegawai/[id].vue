@@ -151,7 +151,7 @@ const riwayatAKPegawai = computed(() =>
                  </span>
               </td>
               <td class="p-5 text-right">
-                <span class="text-lg font-black text-blue-600">{{ parseFloat(r.ak_didapat || 0).toFixed(3) }}</span>
+                <span class="text-lg font-black text-blue-600">{{ Number(r.ak_didapat || 0).toFixed(3) }}</span>
               </td>
             </tr>
             <tr v-if="riwayatAKPegawai.length === 0">

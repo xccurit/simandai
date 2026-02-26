@@ -93,7 +93,7 @@ const savePegawai = () => {
   <div class="max-w-7xl mx-auto space-y-10 pb-16 p-6">
     <div class="flex justify-between items-center">
       <div>
-        <h2 class="text-3xl font-bold text-gray-800">Data Pokok Pegawai (SIMPEG)</h2>
+        <h2 class="text-3xl font-bold text-gray-800">Data Pokok Pegawai</h2>
         <p class="text-gray-500">Master data pegawai aktif dan tugas belajar</p>
       </div>
       <button @click="openTambah" class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition shadow-lg font-bold">

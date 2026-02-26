@@ -3,7 +3,24 @@ import { ref, computed } from 'vue'
 import { usePegawaiStore } from '~/stores/usePegawaiStore'
 
 const store = usePegawaiStore()
+const userSesi = useCookie('userProfile', { default: () => ({ role: 'Admin', unit_kerja: '', nip: '' }) })
 const activeTab = ref('kp') // 'kp', 'ukom', 'assess', 'jft'
+
+const basePegawaiList = computed(() => {
+  let list = store.pegawaiList
+  if (userSesi.value.role === 'Pegawai') {
+    list = list.filter(p => p.nip === userSesi.value.nip)
+  } else if (userSesi.value.role === 'Supervisor Kabko' || userSesi.value.role === 'Operator') {
+    list = list.filter(p => p.unit_kerja === userSesi.value.unit_kerja)
+  }
+  return list
+})
+
+
+// State untuk Jadwal (Tersimpan di Cookie agar tidak hilang saat di-refresh)
+const jadwalUkom = useCookie('jadwalUkom', { default: () => '10 - 15 Maret 2026' })
+const jadwalAssess = useCookie('jadwalAssess', { default: () => '20 - 22 April 2026' })
+const isEditingJadwal = ref(false)
 
 // Helper untuk menyambung nama jabatan (misal: Pranata Komputer + Ahli Muda)
 const getBaseJabatan = (jabatanLengkap) => {
@@ -131,13 +148,32 @@ const unduhExcel = (elementId, filename) => {
         <h2 class="text-2xl font-bold text-gray-800">Identifikasi Usulan</h2>
         <p class="text-sm text-gray-500 mt-1">Sistem otomatis mendeteksi pegawai yang memenuhi syarat AK</p>
       </div>
-      <div class="flex gap-4 text-xs">
-        <div class="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg border border-blue-200 shadow-sm">
-          📅 <strong>Estimasi Jadwal Ukom:</strong><br>10 - 15 Maret 2026
-        </div>
-        <div class="bg-purple-100 text-purple-800 px-4 py-2 rounded-lg border border-purple-200 shadow-sm">
-          📅 <strong>Estimasi Jadwal Assessment:</strong><br>20 - 22 April 2026
-        </div>
+      <div class="flex gap-4 text-xs items-center">
+        <template v-if="!isEditingJadwal">
+          <div class="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg border border-blue-200 shadow-sm">
+            📅 <strong>Estimasi Jadwal Ukom:</strong><br>{{ jadwalUkom }}
+          </div>
+          <div class="bg-purple-100 text-purple-800 px-4 py-2 rounded-lg border border-purple-200 shadow-sm">
+            📅 <strong>Estimasi Jadwal Assessment:</strong><br>{{ jadwalAssess }}
+          </div>
+          <button v-if="userSesi.role === 'Admin'" @click="isEditingJadwal = true" class="text-gray-500 hover:text-blue-600 font-bold p-2 bg-white rounded shadow-sm border">
+            ✏️ Ubah Jadwal
+          </button>
+        </template>
+
+        <template v-else>
+          <div class="flex flex-col gap-1">
+            <label class="font-bold">Jadwal Ukom:</label>
+            <input v-model="jadwalUkom" class="border p-1.5 rounded outline-none focus:ring-2 focus:ring-blue-500 w-48" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="font-bold">Jadwal Assessment:</label>
+            <input v-model="jadwalAssess" class="border p-1.5 rounded outline-none focus:ring-2 focus:ring-blue-500 w-48" />
+          </div>
+          <button @click="isEditingJadwal = false" class="bg-green-600 text-white font-bold px-4 py-2 rounded-lg mt-4 shadow hover:bg-green-700">
+            💾 Simpan
+          </button>
+        </template>
       </div>
     </div>
 

@@ -7,10 +7,12 @@ import { onMounted } from 'vue'
 // =====================================================================
 // 1. MASTER DATA & HELPER FUNGSI
 // =====================================================================
-const formatTanggal = (date) => {
-  const d = new Date(date)
-  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+const formatTanggalSurat = (dateStr) => {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '-';
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 const getNamaBulan = (bulanIndex) => {
@@ -86,12 +88,12 @@ const kamusPangkat = [
 
 const kamusJabatan = [
   { keyword: 'utama', nama: 'Ahli Utama', koef_tahun: 50, target_jenjang: null },
-  { keyword: 'madya', nama: 'Ahli Madya', koef_tahun: 37.5, target_jenjang: 450 },
-  { keyword: 'muda', nama: 'Ahli Muda', koef_tahun: 25, target_jenjang: 200 },
-  { keyword: 'pertama', nama: 'Ahli Pertama', koef_tahun: 12.5, target_jenjang: 100 },
-  { keyword: 'penyelia', nama: 'Penyelia', koef_tahun: 25, target_jenjang: null },
-  { keyword: 'mahir', nama: 'Mahir', koef_tahun: 12.5, target_jenjang: 100 },
-  { keyword: 'terampil', nama: 'Terampil', koef_tahun: 5, target_jenjang: 40 },
+      { keyword: 'madya', nama: 'Ahli Madya', koef_tahun: 37.5, target_jenjang: 450 },
+      { keyword: 'muda', nama: 'Ahli Muda', koef_tahun: 25, target_jenjang: 200 },
+      { keyword: 'pertama', nama: 'Ahli Pertama', koef_tahun: 12.5, target_jenjang: 100 },
+      { keyword: 'penyelia', nama: 'Penyelia', koef_tahun: 25, target_jenjang: null },
+      { keyword: 'mahir', nama: 'Mahir', koef_tahun: 12.5, target_jenjang: 100 },
+      { keyword: 'terampil', nama: 'Terampil', koef_tahun: 5, target_jenjang: 60 },
 ]
 
 const kamusPredikat = [
@@ -162,7 +164,17 @@ const kembaliKeDaftar = () => { selectedPegawai.value = null }
 
 const riwayatAK = computed(() => {
   if (!selectedPegawai.value) return []
-  return store.riwayatList.filter(r => r.pegawai_id === selectedPegawai.value.id)
+  
+  // Mengambil data sekaligus mengurutkannya (Ascending / Terkecil ke Terbesar)
+  return store.riwayatList
+    .filter(r => r.pegawai_id === selectedPegawai.value.id)
+    .sort((a, b) => {
+       // Urutkan berdasarkan tahun (2022 akan di atas 2026)
+       if (a.tahun !== b.tahun) return a.tahun - b.tahun;
+       
+       // Jika tahunnya sama (misal ada dua SKP di 2024), urutkan berdasarkan bulan mulai
+       return (a.bulan_mulai || 0) - (b.bulan_mulai || 0);
+    })
 })
 
 // Data diurutkan Ascending (Tahun terlama di atas) khusus untuk cetakan Akumulasi/PAK
@@ -181,28 +193,33 @@ const totalAkumulasi = computed(() => {
 
 const analisisKelayakan = computed(() => {
   if (!selectedPegawai.value) return { eligible: false }
-  const match = selectedPegawai.value.pangkat.match(/\((.*?)\)/)
-  const golru = match ? match[1] : ''
+  
+  // PERBAIKAN 1: Tidak pakai regex, langsung baca golru dari database tim IT
+  const golru = selectedPegawai.value.golru || ''
   const syarat = kamusPangkat.find(p => p.golru === golru)
   
-  if (!syarat) return { eligible: false, pesan: 'Pangkat Invalid' }
-  const totalAK = parseFloat(selectedPegawai.value.total_ak_kumulatif)
-  const targetPangkat = syarat.ak_kp
+  if (!syarat) {
+    return { eligible: false, pesan: 'PANGKAT INVALID', warna: 'bg-red-100 text-red-700 border-red-200', targetPangkat: '-', kurangPangkat: '-', targetJenjang: '-', kurangJenjang: '-' }
+  }
+  
+  const totalAK = parseFloat(selectedPegawai.value.total_ak_kumulatif) || 0
+  const targetPangkat = syarat.ak_kp || 0
   let kurangPangkat = targetPangkat - totalAK
   
-  const jabatanLower = selectedPegawai.value.jabatan.toLowerCase()
-  const jabInfo = kamusJabatan.find(j => jabatanLower.includes(j.keyword))
+  const jabatanLengkap = `${selectedPegawai.value.jabatan || ''} ${selectedPegawai.value.jenjang_jabatan || ''}`.toLowerCase()
+  const jabInfo = kamusJabatan.find(j => jabatanLengkap.includes(j.keyword))
   const targetJenjang = jabInfo ? jabInfo.target_jenjang : 0
   let kurangJenjang = targetJenjang ? (targetJenjang - totalAK) : 0
   
+  // PERBAIKAN 2: Mengembalikan nilai AK target dan kurang ke UI (agar surat tidak kosong)
   return { 
     eligible: kurangPangkat <= 0, 
     targetPangkat: targetPangkat, 
     kurangPangkat: kurangPangkat > 0 ? kurangPangkat.toFixed(3) : '0', 
     targetJenjang: targetJenjang || '-', 
     kurangJenjang: kurangJenjang > 0 ? kurangJenjang.toFixed(3) : '0', 
-    pesan: kurangPangkat <= 0 ? 'MEMENUHI SYARAT PANGKAT' : 'BELUM MEMENUHI', 
-    warna: kurangPangkat <= 0 ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600' 
+    pesan: kurangPangkat <= 0 ? 'MEMENUHI SYARAT' : 'BELUM MEMENUHI', 
+    warna: kurangPangkat <= 0 ? 'bg-green-100 text-green-700 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200' 
   }
 })
 
@@ -212,7 +229,28 @@ const analisisKelayakan = computed(() => {
 const showModalKalkulator = ref(false)
 const isEditing = ref(false)
 const editingId = ref(null)
-const formKalkulasi = ref({ tahun: new Date().getFullYear(), bulan_mulai: 1, bulan_selesai: 12, jabatan: 'Ahli Muda', predikat: 'Baik', sumber: 'Konversi SKP' })
+
+const formKalkulasi = ref({ 
+  tahun: new Date().getFullYear(), 
+  bulan_mulai: 1, 
+  bulan_selesai: 12, 
+  jabatan: 'Ahli Muda', 
+  predikat: 'Baik', 
+  sumber: 'Konversi SKP', 
+  ak_didapat: 0,
+  manual_bulan: '', 
+  manual_persen: '', 
+  manual_koef: ''    
+})
+
+// 🚀 TAMBAHKAN KODE INI: Pengaman Otomatis
+watch(() => formKalkulasi.value.tahun, (newYear) => {
+  // Jika tahun diubah BUKAN 2022, pastikan sumber kembali ke Konversi SKP
+  if (newYear !== 2022 && formKalkulasi.value.sumber === 'Migrasi Data Lama') {
+    formKalkulasi.value.sumber = 'Konversi SKP'
+  }
+})
+
 
 const durasiBulan = computed(() => {
   const start = parseInt(formKalkulasi.value.bulan_mulai)
@@ -231,13 +269,40 @@ const hasilKalkulasi = computed(() => {
 })
 
 const bukaModalTambah = () => {
-  isEditing.value = false; editingId.value = null
-  formKalkulasi.value = { tahun: new Date().getFullYear(), bulan_mulai: 1, bulan_selesai: 12, jabatan: selectedPegawai.value?.jabatan.includes('Muda') ? 'Ahli Muda' : 'Ahli Pertama', predikat: 'Baik', sumber: 'Konversi SKP', ak_didapat: 0 }
+  isEditing.value = false; 
+  editingId.value = null;
+
+  // Deteksi cerdas jenjang jabatan dari database
+  let defaultJabatan = 'Ahli Pertama';
+  if (selectedPegawai.value) {
+    if (selectedPegawai.value.jenjang_jabatan) {
+        defaultJabatan = selectedPegawai.value.jenjang_jabatan;
+    } else {
+        const j = (selectedPegawai.value.jabatan || '').toLowerCase();
+        if (j.includes('utama')) defaultJabatan = 'Ahli Utama';
+        else if (j.includes('madya')) defaultJabatan = 'Ahli Madya';
+        else if (j.includes('muda')) defaultJabatan = 'Ahli Muda';
+        else if (j.includes('penyelia')) defaultJabatan = 'Penyelia';
+        else if (j.includes('mahir')) defaultJabatan = 'Mahir';
+        else if (j.includes('terampil')) defaultJabatan = 'Terampil';
+    }
+  }
+
+  formKalkulasi.value = { 
+    tahun: new Date().getFullYear(), 
+    bulan_mulai: 1, 
+    bulan_selesai: 12, 
+    jabatan: defaultJabatan, 
+    predikat: 'Baik', 
+    sumber: 'Konversi SKP', 
+    ak_didapat: 0 
+  }
   showModalKalkulator.value = true
 }
 
 const bukaModalEdit = (item) => {
-  isEditing.value = true; editingId.value = item.id
+  isEditing.value = true; 
+  editingId.value = item.id;
   formKalkulasi.value = { 
     tahun: item.tahun, 
     bulan_mulai: item.bulan_mulai || 1, 
@@ -245,13 +310,17 @@ const bukaModalEdit = (item) => {
     jabatan: item.jabatan, 
     predikat: item.predikat,
     sumber: item.sumber,
-    ak_didapat: item.ak_didapat
+    ak_didapat: item.ak_didapat,
+    // Panggil data manual (jika sudah pernah diisi)
+    manual_bulan: item.manual_bulan || '',
+    manual_persen: item.manual_persen || '',
+    manual_koef: item.manual_koef || ''
   }
   showModalKalkulator.value = true
 }
 
 const simpanKalkulasi = () => {
-  if (durasiBulan.value <= 0 && formKalkulasi.value.sumber !== 'Migrasi Data Lama') { 
+  if (formKalkulasi.value.sumber !== 'Migrasi Data Lama' && durasiBulan.value <= 0) { 
      alert("Bulan Selesai harus lebih besar atau sama dengan Bulan Mulai!"); return; 
   }
   const dataBaru = { 
@@ -263,8 +332,15 @@ const simpanKalkulasi = () => {
     bulan: durasiBulan.value,
     jabatan: formKalkulasi.value.jabatan, 
     predikat: formKalkulasi.value.predikat, 
-    ak_didapat: parseFloat(hasilKalkulasi.value), 
-    sumber: formKalkulasi.value.tahun === 2022 ? 'Migrasi Data Lama' : formKalkulasi.value.sumber
+    sumber: formKalkulasi.value.sumber,
+    // Simpan hasil input manual 2022
+    manual_bulan: formKalkulasi.value.manual_bulan,
+    manual_persen: formKalkulasi.value.manual_persen,
+    manual_koef: formKalkulasi.value.manual_koef,
+    // Tentukan angka final
+    ak_didapat: formKalkulasi.value.sumber === 'Migrasi Data Lama' 
+                 ? parseFloat(formKalkulasi.value.ak_didapat || 0) 
+                 : parseFloat(hasilKalkulasi.value)
   }
   store.simpanRiwayat(dataBaru, isEditing.value)
   showModalKalkulator.value = false
@@ -298,7 +374,7 @@ const formCetak = ref({
   jenis: '', 
   item_id: null,
   ditetapkan_di: '',
-  tanggal_ttd: formatTanggal(new Date()),
+  tanggal_ttd: formatTanggalSurat(new Date()),
   nomor_surat: '',
   rekomendasi_pak: kamusRekomendasi[0]
 })
@@ -307,7 +383,7 @@ const openPrintModal = (jenis, item = null) => {
   formCetak.value.jenis = jenis;
   formCetak.value.item_id = item ? item.id : null;
   formCetak.value.ditetapkan_di = getIbukota(selectedPegawai.value.unit_kerja); // Deteksi Ibukota Otomatis
-  formCetak.value.tanggal_ttd = formatTanggal(new Date());
+  formCetak.value.tanggal_ttd = formatTanggalSurat(new Date());
   formCetak.value.nomor_surat = '';
   formCetak.value.rekomendasi_pak = kamusRekomendasi[0];
   showPrintSetupModal.value = true;
@@ -464,8 +540,14 @@ onMounted(() => {
           <tbody class="divide-y divide-gray-100 text-sm">
             <tr v-for="(peg, index) in paginatedPegawai" :key="peg.id" class="hover:bg-blue-50/30">
               <td class="px-6 py-4 text-center">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
-              <td class="px-6 py-4"><div class="font-bold text-gray-900">{{ peg.nama_lengkap || peg.nama }}</div><div class="text-xs text-gray-500 mt-0.5">{{ peg.nip_baru || peg.nip }}</div></td>
-              <td class="px-6 py-4"><div class="font-medium text-bps-blue">{{ peg.jabatan }}</div><div class="text-xs text-gray-500 mt-0.5">{{ peg.pangkat }}</div></td>
+              <td class="px-6 py-4">
+                 <div class="font-bold text-gray-900">{{ peg.nama_lengkap || peg.nama }}</div>
+                 <div class="text-xs text-gray-500 mt-0.5">{{ peg.nip_baru || peg.nip }}</div>
+              </td>
+              <td class="px-6 py-4">
+                 <div class="font-medium text-bps-blue">{{ peg.jabatan }} {{ peg.jenjang_jabatan }}</div>
+                 <div class="text-xs text-gray-500 mt-0.5">{{ peg.pangkat }} ({{ peg.golru }})</div>
+              </td>
               <td class="px-6 py-4 text-center"><span class="px-2 py-1 bg-gray-100 rounded text-xs border">{{ peg.status_kepegawaian }}</span></td>
               <td class="px-6 py-4 text-center"><button @click="lihatDetailAK(peg)" class="bg-bps-blue text-white px-4 py-2 rounded-md font-semibold text-xs hover:bg-bps-dark">Buka Data</button></td>
             </tr>
@@ -490,8 +572,14 @@ onMounted(() => {
             <h3 class="text-xl font-bold text-gray-800">{{ selectedPegawai.nama_lengkap || selectedPegawai.nama }}</h3>
             <p class="text-sm text-gray-500 mt-1">{{ selectedPegawai.nip_baru || selectedPegawai.nip }} | {{ formatUnitKerja(selectedPegawai.unit_kerja) }}</p>
             <div class="flex items-center gap-3 mt-3 text-sm">
-              <span class="bg-blue-50 text-bps-dark px-2.5 py-1 rounded-md font-medium border border-blue-100">{{ selectedPegawai.jabatan }}</span>
-              <span class="bg-gray-50 text-gray-600 px-2.5 py-1 rounded-md font-medium border border-gray-200">{{ selectedPegawai.pangkat }}</span>
+              <span class="bg-blue-50 text-bps-dark px-2.5 py-1 rounded-md font-medium border border-blue-100">
+                 {{ selectedPegawai.jabatan }} {{ selectedPegawai.jenjang_jabatan }}
+              </span>
+              
+              <span class="bg-gray-50 text-gray-600 px-2.5 py-1 rounded-md font-medium border border-gray-200">
+                 {{ selectedPegawai.pangkat }} ({{ selectedPegawai.golru }})
+              </span>
+              
               <span :class="`px-2.5 py-1 rounded-md font-bold border ${analisisKelayakan.warna}`">{{ analisisKelayakan.pesan }}</span>
             </div>
           </div>
@@ -596,44 +684,55 @@ onMounted(() => {
           <h3 class="font-bold text-lg">{{ isEditing ? 'Edit Data SKP' : 'Kalkulasi SKP Baru' }}</h3>
           <button @click="showModalKalkulator = false" class="text-white hover:text-gray-200 text-2xl">&times;</button>
         </div>
-        <div class="p-6 space-y-4">
-          <div class="grid grid-cols-3 gap-4">
-             <div>
-               <label class="block text-xs font-bold mb-1">Tahun Penilaian</label>
-               <input v-model="formKalkulasi.tahun" type="number" class="w-full p-2 border rounded outline-none focus:border-bps-blue">
-             </div>
-             <div>
-               <label class="block text-xs font-bold mb-1">Bulan Mulai</label>
-               <select v-model="formKalkulasi.bulan_mulai" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue">
-                  <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
-               </select>
-             </div>
-             <div>
-               <label class="block text-xs font-bold mb-1">Bulan Selesai</label>
-               <select v-model="formKalkulasi.bulan_selesai" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue">
-                  <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
-               </select>
-             </div>
-          </div>
-          <div><label class="block text-xs font-bold mb-1">Jabatan Saat Evaluasi</label><select v-model="formKalkulasi.jabatan" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="j in kamusJabatan" :value="j.nama">{{ j.nama }} (Koefisien: {{ j.koef_tahun }})</option></select></div>
+        <div class="p-6">
           
-          <div class="grid grid-cols-2 gap-4">
-             <div><label class="block text-xs font-bold mb-1">Predikat Kinerja</label><select v-model="formKalkulasi.predikat" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="p in kamusPredikat" :value="p.nama">{{ p.nama }} ({{ p.persen * 100 }}%)</option></select></div>
+          <div class="grid grid-cols-2 gap-4 mb-4">
+             <div><label class="block text-xs font-bold mb-1">Tahun Penilaian</label><input v-model="formKalkulasi.tahun" type="number" class="w-full p-2 border rounded outline-none focus:border-bps-blue"></div>
              <div>
                 <label class="block text-xs font-bold mb-1">Sumber Dokumen</label>
                 <select v-model="formKalkulasi.sumber" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue">
                    <option value="Konversi SKP">Konversi SKP</option>
-                   <option value="Migrasi Data Lama">Migrasi / Integrasi</option>
+                   <option value="Migrasi Data Lama" :disabled="formKalkulasi.tahun !== 2022" :class="{'text-gray-400': formKalkulasi.tahun !== 2022}">
+                     Migrasi / Integrasi
+                   </option>
                 </select>
+                <p v-if="formKalkulasi.tahun !== 2022" class="text-[9px] text-red-500 mt-1 italic">*Opsi Migrasi hanya tersedia untuk Tahun 2022</p>
              </div>
           </div>
 
-          <div class="p-4 bg-blue-50 border rounded text-center flex flex-col items-center justify-center">
-             <p class="text-xs uppercase font-bold text-blue-600 mb-1">Hasil Konversi Angka Kredit</p>
-             <input v-if="formKalkulasi.sumber === 'Migrasi Data Lama'" v-model="formKalkulasi.ak_didapat" type="number" step="0.001" class="text-2xl font-bold text-center border-b-2 border-bps-blue bg-transparent outline-none w-1/2">
-             <p v-else class="text-3xl font-extrabold text-bps-blue">{{ hasilKalkulasi }}</p>
-             <p class="text-xs text-gray-500 mt-2">Berdasarkan Durasi Penilaian: <strong>{{ durasiBulan }} Bulan</strong></p>
-          </div>
+          <template v-if="formKalkulasi.sumber === 'Konversi SKP'">
+            <div class="grid grid-cols-2 gap-4 mb-4">
+               <div><label class="block text-xs font-bold mb-1">Bulan Mulai</label><select v-model="formKalkulasi.bulan_mulai" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option></select></div>
+               <div><label class="block text-xs font-bold mb-1">Bulan Selesai</label><select v-model="formKalkulasi.bulan_selesai" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option></select></div>
+            </div>
+            <div class="mb-4"><label class="block text-xs font-bold mb-1">Jabatan Saat Evaluasi</label><select v-model="formKalkulasi.jabatan" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="j in kamusJabatan" :value="j.nama">{{ j.nama }} (Koefisien: {{ j.koef_tahun }})</option></select></div>
+            <div class="mb-4"><label class="block text-xs font-bold mb-1">Predikat Kinerja</label><select v-model="formKalkulasi.predikat" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="p in kamusPredikat" :value="p.nama">{{ p.nama }} ({{ p.persen * 100 }}%)</option></select></div>
+            
+            <div class="p-4 bg-blue-50 border rounded text-center flex flex-col items-center justify-center">
+               <p class="text-xs uppercase font-bold text-blue-600 mb-1">Hasil Konversi Angka Kredit</p>
+               <p class="text-3xl font-extrabold text-bps-blue">{{ hasilKalkulasi }}</p>
+               <p class="text-xs text-gray-500 mt-2">Berdasarkan Durasi Penilaian: <strong>{{ durasiBulan }} Bulan</strong></p>
+            </div>
+          </template>
+
+          <template v-else>
+            <div class="p-4 bg-gray-50 border border-gray-300 rounded-lg space-y-4">
+               <p class="text-xs font-bold text-gray-500 uppercase border-b pb-1">Input Data Manual Format 2022 (Untuk PDF)</p>
+               
+               <div class="grid grid-cols-2 gap-4">
+                  <div><label class="block text-xs font-bold mb-1">Periodik (Bulan)</label><input v-model="formKalkulasi.manual_bulan" class="w-full p-2 border rounded outline-none focus:border-bps-blue" placeholder="Contoh: 12 Bulan"></div>
+                  <div><label class="block text-xs font-bold mb-1">Predikat</label><input v-model="formKalkulasi.predikat" class="w-full p-2 border rounded outline-none focus:border-bps-blue" placeholder="Contoh: Baik"></div>
+                  <div><label class="block text-xs font-bold mb-1">Prosentase (%)</label><input v-model="formKalkulasi.manual_persen" class="w-full p-2 border rounded outline-none focus:border-bps-blue" placeholder="Contoh: 100%"></div>
+                  <div><label class="block text-xs font-bold mb-1">Koefisien per Tahun</label><input v-model="formKalkulasi.manual_koef" class="w-full p-2 border rounded outline-none focus:border-bps-blue" placeholder="Contoh: 12.5"></div>
+               </div>
+
+               <div class="pt-4 border-t">
+                  <label class="block text-xs font-bold mb-1 text-bps-blue">Angka Kredit Didapat</label>
+                  <input v-model="formKalkulasi.ak_didapat" type="number" step="0.001" class="w-full p-2 border-2 border-bps-blue bg-white rounded outline-none text-xl font-bold" placeholder="Masukkan angka akhir..." />
+               </div>
+            </div>
+          </template>
+
         </div>
         <div class="p-4 border-t flex justify-end gap-2 bg-gray-50 rounded-b-2xl">
           <button @click="showModalKalkulator = false" class="px-5 py-2 text-gray-600 font-semibold rounded hover:bg-gray-200">Batal</button>
@@ -686,10 +785,22 @@ onMounted(() => {
               <tr><td class="border border-black px-2 w-6 text-center">1</td><td class="border border-black px-2 w-56">N a m a</td><td class="border border-black px-2 font-bold">{{ printData.pegawai.nama_lengkap || printData.pegawai.nama }}</td></tr>
               <tr><td class="border border-black px-2 text-center">2</td><td class="border border-black px-2">NIP</td><td class="border border-black px-2">{{ printData.pegawai.nip_baru || printData.pegawai.nip }}</td></tr>
               <tr><td class="border border-black px-2 text-center">3</td><td class="border border-black px-2">Nomor Seri KARPEG</td><td class="border border-black px-2">{{ printData.pegawai.karpeg }}</td></tr>
-              <tr><td class="border border-black px-2 text-center">3</td><td class="border border-black px-2">Tempat dan Tanggal Lahir</td><td class="border border-black px-2">{{ printData.pegawai.tempat_lahir }}, {{ printData.pegawai.tanggal_lahir }}</td></tr>
+              <tr>
+   <td style="border: 1px solid black; text-align: center; padding: 3px;">4</td>
+   <td style="border: 1px solid black; padding: 3px 5px;">Tempat dan Tanggal Lahir</td>
+   <td colspan="4" style="border: 1px solid black; padding: 3px 8px;">
+      {{ printData.pegawai.tempat_lahir }}, {{ formatTanggalSurat(printData.pegawai.tanggal_lahir) }}
+   </td>
+</tr>
               <tr><td class="border border-black px-2 text-center">5</td><td class="border border-black px-2">Jenis Kelamin</td><td class="border border-black px-2">{{ printData.pegawai.jenis_kelamin || printData.pegawai.jk }}</td></tr>
-              <tr><td class="border border-black px-2 text-center">6</td><td class="border border-black px-2">Pangkat/Golongan Ruang/TMT</td><td class="border border-black px-2">{{ printData.pegawai.pangkat }} / 1 April 2024</td></tr>
-              <tr><td class="border border-black px-2 text-center">7</td><td class="border border-black px-2">Jabatan Fungsional/TMT</td><td class="border border-black px-2">{{ printData.jabatan }}</td></tr>
+              <tr>
+   <td style="border: 1px solid black; text-align: center; padding: 3px;">6</td>
+   <td style="border: 1px solid black; padding: 3px 5px;">Pangkat/Golongan Ruang/TMT</td>
+   <td colspan="4" style="border: 1px solid black; padding: 3px 8px;">
+      {{ printData.pegawai.pangkat }} ({{ printData.pegawai.golru }}) / {{ formatTanggalSurat(printData.pegawai.tmt_pangkat) }}
+   </td>
+</tr>
+              <tr><td class="border border-black px-2 text-center">7</td><td class="border border-black px-2">Jabatan Fungsional/TMT</td><td class="border border-black px-2">{{printData.pegawai.jabatan}} {{ printData.pegawai.jenjang_jabatan }}</td></tr>
               <tr><td class="border border-black px-2 text-center">8</td><td class="border border-black px-2">Unit Kerja</td><td class="border border-black px-2">{{ formatUnitKerja(printData.pegawai.unit_kerja) }}</td></tr>
               <tr><td class="border border-black px-2 text-center">9</td><td class="border border-black px-2">Instansi</td><td class="border border-black px-2">Badan Pusat Statistik</td></tr>
              </tbody>
@@ -759,10 +870,10 @@ onMounted(() => {
               <tr><td style="border: 1px solid black; padding: 4px; width: 30px; text-align: center;">1</td><td style="border: 1px solid black; padding: 4px; width: 220px;">N a m a</td><td style="border: 1px solid black; padding: 4px; font-weight: bold;">{{ printData.pegawai.nama_lengkap || printData.pegawai.nama }}</td></tr>
               <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">2</td><td style="border: 1px solid black; padding: 4px;">NIP</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.nip_baru || printData.pegawai.nip }}</td></tr>
               <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">3</td><td style="border: 1px solid black; padding: 4px;">Nomor Seri KARPEG</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.karpeg }}</td></tr>
-              <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">4</td><td style="border: 1px solid black; padding: 4px;">Tempat dan Tanggal Lahir</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.tempat_lahir }}, {{ printData.pegawai.tanggal_lahir }}</td></tr>
+              <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">4</td><td style="border: 1px solid black; padding: 4px;">Tempat dan Tanggal Lahir</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.tempat_lahir }}, {{ formatTanggalSurat(printData.pegawai.tanggal_lahir) }}</td></tr>
               <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">5</td><td style="border: 1px solid black; padding: 4px;">Jenis Kelamin</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.jenis_kelamin || printData.pegawai.jk }}</td></tr>
-              <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">6</td><td style="border: 1px solid black; padding: 4px;">Pangkat/Golongan Ruang/TMT</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.pangkat }} / 1 April 2024</td></tr>
-              <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">7</td><td style="border: 1px solid black; padding: 4px;">Jabatan Fungsional/TMT</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.jabatan }}</td></tr>
+              <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">6</td><td style="border: 1px solid black; padding: 4px;">Pangkat/Golongan Ruang/TMT</td><td style="border: 1px solid black; padding: 4px;"> {{ printData.pegawai.pangkat }} ({{ printData.pegawai.golru }}) / {{ formatTanggalSurat(printData.pegawai.tmt_pangkat) }}</td></tr>
+              <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">7</td><td style="border: 1px solid black; padding: 4px;">Jabatan Fungsional/TMT</td><td style="border: 1px solid black; padding: 4px;">{{printData.pegawai.jabatan}} {{ printData.pegawai.jenjang_jabatan }}</td></tr>
               <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">8</td><td style="border: 1px solid black; padding: 4px;">Unit Kerja</td><td style="border: 1px solid black; padding: 4px;">{{ formatUnitKerja(printData.pegawai.unit_kerja) }}</td></tr>
               <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">9</td><td style="border: 1px solid black; padding: 4px;">Instansi</td><td style="border: 1px solid black; padding: 4px;">Badan Pusat Statistik</td></tr>
              </tbody>
@@ -786,23 +897,32 @@ onMounted(() => {
              </thead>
              <tbody>
               <tr v-for="rw in printData.riwayat" :key="rw.id">
-                <td style="border: 1px solid black; padding: 6px; font-weight: bold;">{{ rw.tahun }}</td>
+                <td style="border: 1px solid black; padding: 5px; font-weight: bold;">{{ rw.tahun }}</td>
+                
                 <template v-if="rw.sumber === 'Migrasi Data Lama'">
-                   <td colspan="4" style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: center; color: #4b5563;">
-                      Angka Kredit Integrasi / Migrasi
-                   </td>
+                   <template v-if="rw.manual_bulan || rw.manual_koef">
+                      <td style="border: 1px solid black; padding: 5px;">{{ rw.manual_bulan }}</td>
+                      <td style="border: 1px solid black; padding: 5px;">{{ rw.predikat }}</td>
+                      <td style="border: 1px solid black; padding: 5px;">{{ rw.manual_persen }}</td>
+                      <td style="border: 1px solid black; padding: 5px;">{{ rw.manual_koef }}</td>
+                   </template>
+                   <template v-else>
+                      <td colspan="4" style="border: 1px solid black; padding: 5px;"></td>
+                   </template>
                 </template>
+                
                 <template v-else>
-                   <td style="border: 1px solid black; padding: 6px;">{{ rw.bulan }} Bulan</td>
-                   <td style="border: 1px solid black; padding: 6px;">{{ rw.predikat }}</td>
-                   <td style="border: 1px solid black; padding: 6px;">{{ rw.persen + '%' }}</td>
-                   <td style="border: 1px solid black; padding: 6px;">{{ rw.koef_tahun }}</td>
+                   <td style="border: 1px solid black; padding: 5px;">{{ rw.bulan }} Bulan</td>
+                   <td style="border: 1px solid black; padding: 5px;">{{ rw.predikat }}</td>
+                   <td style="border: 1px solid black; padding: 5px;">{{ rw.persen + '%' }}</td>
+                   <td style="border: 1px solid black; padding: 5px;">{{ rw.koef_tahun }}</td>
                 </template>
-                <td style="border: 1px solid black; padding: 6px; font-weight: bold;">{{ parseFloat(rw.ak_didapat).toFixed(3) }}</td>
+
+                <td style="border: 1px solid black; padding: 5px; font-weight: bold;">{{ parseFloat(rw.ak_didapat).toFixed(3) }}</td>
               </tr>
               <tr style="background-color: #e5e7eb; font-weight: bold;">
-                 <td colspan="5" style="border: 1px solid black; padding: 8px; text-align: right; padding-right: 15px;">JUMLAH ANGKA KREDIT YANG DIPEROLEH</td>
-                 <td style="border: 1px solid black; padding: 8px; font-size: 13px;">{{ parseFloat(printData.total_ak).toFixed(3) }}</td>
+                 <td colspan="5" style="border: 1px solid black; padding: 6px; text-align: right; padding-right: 15px;">JUMLAH ANGKA KREDIT YANG DIPEROLEH</td>
+                 <td style="border: 1px solid black; padding: 6px; font-size: 13px;">{{ parseFloat(printData.total_ak).toFixed(3) }}</td>
               </tr>
              </tbody>
            </table>
@@ -882,7 +1002,7 @@ onMounted(() => {
                   <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">4</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">Tempat dan Tanggal Lahir</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.tempat_lahir }}, {{ printData.pegawai.tanggal_lahir }}</td>
+                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.tempat_lahir }}, {{ formatTanggalSurat(printData.pegawai.tanggal_lahir) }}</td>
               </tr>
               <tr>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
@@ -894,13 +1014,13 @@ onMounted(() => {
                   <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">6</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">Pangkat/Golongan Ruang/TMT</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.pangkat }}</td>
+                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.pangkat }} ({{ printData.pegawai.golru }}) / {{ formatTanggalSurat(printData.pegawai.tmt_pangkat) }}</td>
               </tr>
               <tr>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">7</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">Jabatan Fungsional/TMT</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.jabatan }}</td>
+                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{printData.pegawai.jabatan}} {{ printData.pegawai.jenjang_jabatan }}</td>
               </tr>
               <tr>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
