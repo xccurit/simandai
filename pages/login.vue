@@ -70,8 +70,10 @@ const handleLogin = () => {
         <div class="flex justify-center mb-4">
           <img src="/logo-bps-kalteng1.png" alt="Logo BPS" class="h-24 w-auto mx-auto" />
         </div>
-        <h2>SIMANDAI BPS</h2>
-        <p>Sistem Manajemen SDM Kalteng</p>
+        <h2>SIMANDAI</h2>
+        <!-- <p>Sistem Manajemen Data Pegawai</p>
+        <p>Badan Pusat Statistik</p>
+        <p>Provinsi Kalimantan Tengah</p> -->
       </div>
 
       <div v-if="errorMessage" class="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4 text-sm text-center font-bold">
