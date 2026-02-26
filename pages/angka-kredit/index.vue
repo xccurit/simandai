@@ -1002,152 +1002,157 @@ onMounted(() => {
              <tbody>
               
               <tr style="font-weight: bold;">
-                  <td style="border: 1px solid black; text-align: center; width: 25px; padding: 3px;">I</td>
-                  <td colspan="5" style="border: 1px solid black; padding: 3px 5px;">KETERANGAN PERORANGAN</td>
+                  <td rowspan="10" style="border: 1px solid black; text-align: center; width: 25px; padding: 3px; vertical-align: top;">I</td>
+                  <td colspan="10" style="border: 1px solid black; padding: 3px 5px; text-align: center;">KETERANGAN PERORANGAN</td>
               </tr>
               <tr>
-                  <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; width: 25px; padding: 3px;">1</td>
-                  <td style="border: 1px solid black; padding: 3px 5px; width: 240px;">N a m a</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px; font-weight: bold;">{{ printData.pegawai.nama_lengkap || printData.pegawai.nama }}</td>
+                  <td style="border: 1px solid black; padding: 3px 5px; width: 260px;">N a m a</td>
+                  <td colspan="8" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.nama_lengkap || printData.pegawai.nama }}</td>
               </tr>
               <tr>
-                  <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">2</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">NIP</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.nip_baru || printData.pegawai.nip }}</td>
+                  <td colspan="8" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.nip_baru || printData.pegawai.nip }}</td>
               </tr>
               <tr>
-                  <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">3</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">Nomor Seri KARPEG</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.karpeg }}</td>
+                  <td colspan="8" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.karpeg }}</td>
               </tr>
               <tr>
-                  <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">4</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">Tempat dan Tanggal Lahir</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.tempat_lahir }}, {{ formatTanggalSurat(printData.pegawai.tanggal_lahir) }}</td>
+                  <td colspan="8" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.tempat_lahir }}, {{ formatTanggalSurat(printData.pegawai.tanggal_lahir) }}</td>
               </tr>
               <tr>
-                  <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">5</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">Jenis Kelamin</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.jenis_kelamin || printData.pegawai.jk }}</td>
+                  <td colspan="8" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.jenis_kelamin || printData.pegawai.jk }}</td>
               </tr>
               <tr>
-                  <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">6</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">Pangkat/Golongan Ruang/TMT</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.pangkat }} ({{ printData.pegawai.golru }}) / {{ formatTanggalSurat(printData.pegawai.tmt_pangkat) }}</td>
+                  <td colspan="8" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.pangkat }} ({{ printData.pegawai.golru }}) / {{ formatTanggalSurat(printData.pegawai.tmt_pangkat) }}</td>
               </tr>
               <tr>
-                  <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">7</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">Jabatan Fungsional/TMT</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{printData.pegawai.jabatan}} {{ printData.pegawai.jenjang_jabatan }}</td>
+                  <td colspan="8" style="border: 1px solid black; padding: 3px 5px;">{{printData.pegawai.jabatan}} {{ printData.pegawai.jenjang_jabatan }}</td>
               </tr>
               <tr>
-                  <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">8</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">Unit Kerja</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ formatUnitKerja(printData.pegawai.unit_kerja) }}</td>
+                  <td colspan="8" style="border: 1px solid black; padding: 3px 5px;">{{ formatUnitKerja(printData.pegawai.unit_kerja) }}</td>
               </tr>
               <tr>
-                  <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">9</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">Instansi</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">Badan Pusat Statistik</td>
+                  <td colspan="8" style="border: 1px solid black; padding: 3px 5px;">Badan Pusat Statistik</td>
               </tr>
              
+              <tr style="font-weight: bold;">
+                  <td colspan="11" style="border: 0px solid black; padding: 3px 5px; text-align: center;">HASIL PENILAIAN ANGKA KREDIT</td>
+              </tr>
+
               <tr style="font-weight: bold; text-align: center;">
-                 <td style="border: 1px solid black; padding: 3px;">II</td>
-                 <td colspan="2" style="border: 1px solid black; text-align: left; padding: 3px 5px;">PENETAPAN ANGKA KREDIT</td>
+                 <td rowspan="12" style="border: 1px solid black; text-align: center; width: 25px; padding: 3px; vertical-align: top;">II</td>
+                 <td colspan="5" style="border: 1px solid black; text-align: left; padding: 3px 5px;">PENETAPAN ANGKA KREDIT</td>
                  <td style="border: 1px solid black; width: 75px; padding: 3px;">LAMA</td>
                  <td style="border: 1px solid black; width: 75px; padding: 3px;">BARU</td>
                  <td style="border: 1px solid black; width: 75px; padding: 3px;">JUMLAH</td>
+                 <td style="border: 1px solid black; width: 75px; padding: 3px;">KET.</td>
               </tr>
               <tr>
-                 <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">1</td>
-                 <td style="border: 1px solid black; padding: 3px 5px;">AK Dasar yang diberikan</td>
+                 <td colspan="4" style="border: 1px solid black; padding: 3px 5px;">AK Dasar yang diberikan</td>
+                 <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
               </tr>
               <tr>
-                 <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">2</td>
-                 <td style="border: 1px solid black; padding: 3px 5px;">AK JF Lama</td>
+                 <td colspan="4" style="border: 1px solid black; padding: 3px 5px;">AK JF Lama</td>
+                 <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
               </tr>
               <tr>
-                 <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">3</td>
-                 <td style="border: 1px solid black; padding: 3px 5px;">AK Penyesuaian/Penyetaraan</td>
+                 <td colspan="4" style="border: 1px solid black; padding: 3px 5px;">AK Penyesuaian/Penyetaraan</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
-              </tr>
+                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
+                </tr>
               <tr>
-                 <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">4</td>
-                 <td style="border: 1px solid black; padding: 3px 5px;">AK Konversi</td>
+                 <td colspan="4" style="border: 1px solid black; padding: 3px 5px;">AK Konversi</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
-                 <td style="border: 1px solid black; text-align: center; padding: 3px; font-weight: bold;">{{ parseFloat(printData.total_ak).toFixed(3) }}</td>
-                 <td style="border: 1px solid black; text-align: center; padding: 3px; font-weight: bold;">{{ parseFloat(printData.total_ak).toFixed(3) }}</td>
+                 <td style="border: 1px solid black; text-align: center; padding: 3px;">{{ parseFloat(printData.total_ak).toFixed(3) }}</td>
+                 <td style="border: 1px solid black; text-align: center; padding: 3px;">{{ parseFloat(printData.total_ak).toFixed(3) }}</td>
+                 <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
               </tr>
               <tr>
-                 <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">5</td>
-                 <td style="border: 1px solid black; padding: 3px 5px;">AK yang diperoleh dari Peningkatan Pendidikan</td>
+                 <td colspan="4" style="border: 1px solid black; padding: 3px 5px;">AK yang diperoleh dari Peningkatan Pendidikan</td>
+                 <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
               </tr>
               <tr>
-                 <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">6</td>
-                 <td style="border: 1px solid black; padding: 3px 5px;">....**)</td>
+                 <td colspan="4" style="border: 1px solid black; padding: 3px 5px;">....**)</td>
+                 <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
               </tr>
               <tr style="font-weight: bold;">
-                 <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
-                 <td colspan="2" style="border: 1px solid black; text-align: right; padding: 3px 15px;">JUMLAH ANGKA KREDIT KUMULATIF</td>
+                 <td colspan="5" style="border: 1px solid black; text-align: left; padding: 3px 5px;">JUMLAH ANGKA KREDIT KUMULATIF</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">{{ parseFloat(printData.total_ak).toFixed(3) }}</td>
                  <td style="border: 1px solid black; text-align: center; padding: 3px;">{{ parseFloat(printData.total_ak).toFixed(3) }}</td>
+                 <td style="border: 1px solid black; text-align: center; padding: 3px;">-</td>
               </tr>
               
               <tr style="font-weight: bold;">
-                 <td style="border: 1px solid black; text-align: center; padding: 3px;">III</td>
-                 <td colspan="2" style="border: 1px solid black; text-align: left; padding: 3px 5px;">KETERANGAN</td>
-                 <td colspan="2" style="border: 1px solid black; text-align: center; padding: 3px;">PANGKAT</td>
-                 <td style="border: 1px solid black; text-align: center; padding: 3px;">JENJANG JABATAN</td>
+                 <td colspan="5" style="border: 1px solid black; text-align: left; padding: 3px 5px;">Keterangan</td>
+                 <td colspan="2" style="border: 1px solid black; text-align: center; padding: 3px;">Pangkat</td>
+                 <td colspan="2" style="border: 1px solid black; text-align: center; padding: 3px;">Jenjang Jabatan</td>
               </tr>
               <tr>
-                 <td style="border: 1px solid black; padding: 3px;"></td>
-                 <td colspan="2" style="border: 1px solid black; padding: 3px 5px;">Angka Kredit minimal yang harus dicapai</td>
+                 <td colspan="5" style="border: 1px solid black; padding: 3px 5px; text-align: justify;">Angka Kredit minimal yang harus dicapai untuk kenaikan pangkat</td>
                  <td colspan="2" style="border: 1px solid black; text-align: center; padding: 3px;">{{ printData.analisis.targetPangkat }}</td>
-                 <td style="border: 1px solid black; text-align: center; padding: 3px;">{{ printData.analisis.targetJenjang }}</td>
+                 <td colspan="2" style="border: 1px solid black; text-align: center; padding: 3px;">{{ printData.analisis.targetJenjang }}</td>
               </tr>
               <tr>
-                 <td style="border: 1px solid black; padding: 3px;"></td>
-                 <td colspan="2" style="border: 1px solid black; padding: 3px 5px; font-weight: bold;">Kekurangan Angka Kredit yang harus dicapai</td>
-                 <td colspan="2" style="border: 1px solid black; text-align: center; padding: 3px; font-weight: bold;">{{ printData.analisis.kurangPangkat }}</td>
-                 <td style="border: 1px solid black; text-align: center; padding: 3px; font-weight: bold;">{{ printData.analisis.kurangJenjang }}</td>
+                 <td colspan="4" style="border: 1px solid black; padding: 3px 5px; text-align: justify;">Kekurangan Angka Kredit yang harus dicapai untuk kenaikan pangkat</td>
+                 
+                 <td colspan="3" rowspan="2" style="border: 1px solid black; text-align: center; vertical-align: middle; padding: 3px;">
+                    {{ printData.analisis.kurangPangkat }}
+                 </td>
+                 
+                 <td colspan="2" rowspan="2" style="border: 1px solid black; text-align: center; vertical-align: middle; padding: 3px;">
+                    {{ printData.analisis.kurangJenjang }}
+                 </td>
+              </tr>
+              
+              <tr>
+                 <td colspan="4" style="border: 1px solid black; padding: 3px 5px; text-align: justify;">Kekurangan Angka Kredit yang harus dicapai untuk Jenjang Jabatan</td>
+              </tr>
+
+              <tr>
+                 <td style="border: 1px solid black; text-align: center; padding: 3px;">III</td>
+                 <td colspan="9" style="border: 1px solid black; padding: 3px 5px; text-align: justify;">
+                    {{ printData.rekomendasi_pak }}
+                 </td>
               </tr>
              </tbody>
            </table>
-
-           <div class="mb-4 mt-3 flex text-justify border border-black p-2 font-bold bg-gray-50 text-[11px]">
-              <span class="mr-2">IV.</span>
-              <span>{{ printData.rekomendasi_pak }}</span>
-           </div>
 
            <div class="flex justify-between items-end mt-1 mb-8">
              <div class="text-[10px]">
