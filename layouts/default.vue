@@ -1,6 +1,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { useCookie } from '#app'
+import { ref } from 'vue'
 
 const router = useRouter()
 // Mengambil akses cookie yang kita buat di middleware sebelumnya
@@ -14,11 +15,30 @@ const handleLogout = () => {
     router.push('/login')
   }
 }
+
+// Variabel untuk mengontrol buka/tutup sidebar di layar HP/Kecil
+const isSidebarOpen = ref(false)
 </script>
 
 <template>
-  <div class="flex h-screen bg-gray-50">
-    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col fixed h-full z-10 no-print">
+  <div class="flex h-screen bg-gray-50 overflow-hidden">
+    
+    <div class="md:hidden flex items-center justify-between bg-white border-b border-gray-200 p-3 fixed w-full z-30 shadow-sm top-0 left-0 h-14 no-print">
+      <div class="flex items-center gap-3">
+        <button @click="isSidebarOpen = !isSidebarOpen" class="text-gray-600 hover:text-bps-blue p-1 rounded focus:outline-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+        <img src="/logo-bps-kalteng1.png" alt="Logo BPS" class="h-6 w-auto" />
+      </div>
+      <h1 class="font-extrabold text-bps-blue tracking-wider text-sm">SIMANDAI</h1>
+    </div>
+
+    <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity no-print"></div>
+
+    <aside 
+      :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+      class="w-64 bg-white border-r border-gray-200 flex flex-col fixed h-full z-50 transition-transform duration-300 ease-in-out md:translate-x-0 no-print"
+    >
       <div class="h-16 flex items-center pl-4 border-b border-gray-200 overflow-hidden bg-white">
         <div class="z-10 bg-white pr-3 py-2 shadow-[10px_0_15px_-10px_rgba(255,255,255,1)]">
           <img src="/logo-bps-kalteng1.png" alt="Logo BPS" class="h-8 w-auto relative" />
@@ -32,20 +52,20 @@ const handleLogout = () => {
       
       <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
         <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Menu Utama</p>
-        <NuxtLink to="/" class="menu-item">Dashboard</NuxtLink>
-        <NuxtLink to="/data-pegawai" class="menu-item">Data Pegawai</NuxtLink>
+        <NuxtLink @click="isSidebarOpen = false" to="/" class="menu-item">Dashboard</NuxtLink>
+        <NuxtLink @click="isSidebarOpen = false" to="/data-pegawai" class="menu-item">Data Pegawai</NuxtLink>
 
         <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Fungsional & Karir</p>
-        <NuxtLink to="/angka-kredit" class="menu-item">Angka Kredit</NuxtLink>
-        <NuxtLink to="/usulan-kenaikan" class="menu-item">Usulan Kenaikan</NuxtLink>
+        <NuxtLink @click="isSidebarOpen = false" to="/angka-kredit" class="menu-item">Angka Kredit</NuxtLink>
+        <NuxtLink @click="isSidebarOpen = false" to="/usulan-kenaikan" class="menu-item">Usulan Kenaikan</NuxtLink>
 
         <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Organisasi & Kompetensi</p>
-        <NuxtLink to="/analisis-beban-kerja" class="menu-item">Analisis Beban Kerja</NuxtLink>
-        <NuxtLink to="/kompetensi/jabatan" class="menu-item ml-2 text-sm">Kompetensi Jabatan</NuxtLink>
-        <NuxtLink to="/kompetensi/layanan" class="menu-item ml-2 text-sm">Kompetensi Layanan</NuxtLink>
+        <NuxtLink @click="isSidebarOpen = false" to="/analisis-beban-kerja" class="menu-item">Analisis Beban Kerja</NuxtLink>
+        <NuxtLink @click="isSidebarOpen = false" to="/kompetensi/jabatan" class="menu-item ml-2 text-sm">Kompetensi Jabatan</NuxtLink>
+        <NuxtLink @click="isSidebarOpen = false" to="/kompetensi/layanan" class="menu-item ml-2 text-sm">Kompetensi Layanan</NuxtLink>
 
         <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Lainnya</p>
-        <NuxtLink to="/reward-punishment" class="menu-item">Reward & Punishment</NuxtLink>
+        <NuxtLink @click="isSidebarOpen = false" to="/reward-punishment" class="menu-item">Reward & Punishment</NuxtLink>
       </nav>
 
       <div class="border-t border-gray-200 p-3">
@@ -68,9 +88,10 @@ const handleLogout = () => {
       </div>
     </aside>
 
-    <main class="flex-1 ml-64 p-8 overflow-y-auto print-main">
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 md:ml-64 w-full mt-14 md:mt-0 relative print-main">
       <slot />
     </main>
+    
   </div>
 </template>
 
@@ -84,5 +105,5 @@ const handleLogout = () => {
 .marquee-container { overflow: hidden; white-space: nowrap; position: relative; width: 100%; }
 .marquee-text { display: inline-block; padding-left: 100%; animation: scroll-left 6s linear infinite; }
 @keyframes scroll-left { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
-@media print { .no-print { display: none !important; } .print-main { margin-left: 0 !important; padding: 0 !important; } }
+@media print { .no-print { display: none !important; } .print-main { margin-left: 0 !important; padding: 0 !important; margin-top: 0 !important; } }
 </style>
