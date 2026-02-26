@@ -41,6 +41,16 @@ const daftarUnitKerja = [
   'BPS Kabupaten Sukamara'
 ]
 
+const daftarJenjangJabatan = [
+  'Terampil',
+  'Mahir',
+  'Penyelia',
+  'Ahli Pertama',
+  'Ahli Muda',
+  'Ahli Madya',
+  'Ahli Utama'
+]
+
 /* ================= FILTER & STATS ================= */
 const searchQuery = ref('')
 const selectedStatus = ref<'Semua' | 'Aktif' | 'Tugas Belajar'>('Semua')
@@ -291,7 +301,15 @@ watch(() => formPegawai.value.pangkat, (newPangkat) => {
           </div>
           <div class="space-y-1">
             <label class="text-xs font-bold text-gray-600 uppercase">Jenjang Jabatan</label>
-            <input v-model="formPegawai.jenjang_jabatan" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ahli Madya" />
+            <select 
+              v-model="formPegawai.jenjang_jabatan" 
+              class="w-full border p-3 rounded-xl outline-none bg-white focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="" disabled>Pilih Jenjang Jabatan</option>
+              <option v-for="jenjang in daftarJenjangJabatan" :key="jenjang" :value="jenjang">
+                {{ jenjang }}
+              </option>
+            </select>
           </div>
           <div class="space-y-1">
             <label class="text-xs font-bold text-gray-600 uppercase">Unit Kerja</label>
