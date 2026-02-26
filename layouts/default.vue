@@ -27,7 +27,7 @@ const isSidebarOpen = ref(false)
       </div>
       <div class="marquee-container flex-1 h-full flex items-center">
         <h1 class="marquee-text-slow text-[20px] font-extrabold text-bps-blue tracking-wider uppercase">
-          SISTEM INFORMASI MANAJEMEN DATA PEGAWAI
+          SISTEM INFORMASI MANAJEMEN DATA PEGAWAI BADAN PUSAT STATISTIK PROVINSI KALIMANTAN TENGAH
         </h1>
       </div>
     </div>
