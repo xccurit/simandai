@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { usePegawaiStore } from '~/stores/usePegawaiStore'
+import { useCookie } from '#app'
 
 const store = usePegawaiStore()
 const userSesi = useCookie('userProfile', { default: () => ({ role: 'Admin', unit_kerja: '', nip: '' }) })
-const activeTab = ref('kp') // 'kp', 'ukom', 'assess', 'jft'
+const activeTab = ref('kp') 
 
 const basePegawaiList = computed(() => {
   let list = store.pegawaiList
@@ -16,28 +17,27 @@ const basePegawaiList = computed(() => {
   return list
 })
 
-
-// State untuk Jadwal (Tersimpan di Cookie agar tidak hilang saat di-refresh)
 const jadwalUkom = useCookie('jadwalUkom', { default: () => '10 - 15 Maret 2026' })
 const jadwalAssess = useCookie('jadwalAssess', { default: () => '20 - 22 April 2026' })
 const isEditingJadwal = ref(false)
 
-// Helper untuk menyambung nama jabatan (misal: Pranata Komputer + Ahli Muda)
 const getBaseJabatan = (jabatanLengkap) => {
-  if (jabatanLengkap.toLowerCase().includes('statistisi')) return 'Statistisi'
-  if (jabatanLengkap.toLowerCase().includes('pranata komputer')) return 'Pranata Komputer'
-  if (jabatanLengkap.toLowerCase().includes('analis pengelolaan keuangan')) return 'Analis Pengelolaan Keuangan APBN'
-  return jabatanLengkap.split(' ')[0] // Fallback
+  if (!jabatanLengkap) return ''
+  const j = jabatanLengkap.toLowerCase()
+  if (j.includes('statistisi')) return 'Statistisi'
+  if (j.includes('pranata komputer')) return 'Pranata Komputer'
+  if (j.includes('analis pengelolaan keuangan')) return 'Analis Pengelolaan Keuangan APBN'
+  return jabatanLengkap.split(' ')[0] 
 }
 
-// 1. LOGIKA OTAK: MENGANALISIS SIAPA YANG MEMENUHI SYARAT
+// 1. LOGIKA OTAK DIPERBAIKI (TIDAK PAKAI REGEX LAGI)
 const analisisData = computed(() => {
-  return store.pegawaiList.map(peg => {
-    const totalAK = parseFloat(peg.total_ak_kumulatif)
+  return basePegawaiList.value.map(peg => {
+    const totalAK = parseFloat(peg.total_ak_kumulatif) || 0
 
     // --- A. CEK KENAIKAN PANGKAT (KP) ---
-    const match = peg.pangkat.match(/\((.*?)\)/)
-    const golruSaatIni = match ? match[1] : ''
+    // LANGSUNG ambil dari peg.golru (karena datanya sudah dipisah oleh tim IT)
+    const golruSaatIni = peg.golru || ''
     const infoPangkat = store.kamusPangkat.find(p => p.golru === golruSaatIni)
     
     let statusKP = 'Belum'
@@ -53,8 +53,9 @@ const analisisData = computed(() => {
     }
 
     // --- B. CEK KENAIKAN JENJANG / UKOM ---
-    const jabatanLower = peg.jabatan.toLowerCase()
-    const infoJabatan = store.kamusJabatan.find(j => jabatanLower.includes(j.keyword))
+    // GABUNGKAN jabatan dan jenjang agar kebaca (sama seperti solusi di angka kredit)
+    const jabatanLengkap = `${peg.jabatan || ''} ${peg.jenjang_jabatan || ''}`.toLowerCase()
+    const infoJabatan = store.kamusJabatan.find(j => jabatanLengkap.includes(j.keyword))
     
     let statusKJ = 'Belum'
     let nextJenjangLengkap = '-'
@@ -64,50 +65,27 @@ const analisisData = computed(() => {
        const sisa = infoJabatan.target_jenjang - totalAK
        if (sisa <= 0) {
          statusKJ = 'Memenuhi'
-         // Gabungkan base jabatan dengan next level (ex: Statistisi + Ahli Muda)
          const baseJabatan = getBaseJabatan(peg.jabatan)
          nextJenjangLengkap = `${baseJabatan} ${infoJabatan.next}`
          
-         // Jika naik ke Madya atau Utama, wajib ikut Assessment
-         if (infoJabatan.next.includes('Madya') || infoJabatan.next.includes('Utama')) {
+         if (infoJabatan.next && (infoJabatan.next.includes('Madya') || infoJabatan.next.includes('Utama'))) {
             isAssessment = true
          }
        }
     }
 
-    return {
-      ...peg,
-      statusKP,
-      nextPangkat,
-      nextGolru,
-      statusKJ,
-      nextJenjangLengkap,
-      isAssessment,
-      totalAK
-    }
+    return { ...peg, statusKP, nextPangkat, nextGolru, statusKJ, nextJenjangLengkap, isAssessment, totalAK }
   })
 })
 
-// 2. PEMILAHAN DATA SESUAI TAB
 const listKP = computed(() => analisisData.value.filter(p => p.statusKP === 'Memenuhi'))
 const listUkom = computed(() => analisisData.value.filter(p => p.statusKJ === 'Memenuhi'))
 const listAssessment = computed(() => analisisData.value.filter(p => p.isAssessment === true))
 const listJFT = computed(() => analisisData.value.filter(p => p.statusKJ === 'Memenuhi'))
 
-// 3. EXPORT KE MS WORD (Murni HTML ke Docx)
 const unduhWord = (elementId, filename) => {
   const content = document.getElementById(elementId).innerHTML
-  const preHtml = `
-    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-    <head><meta charset='utf-8'><title>Export</title>
-    <style>
-      body { font-family: 'Times New Roman', serif; font-size: 11pt; }
-      table { border-collapse: collapse; width: 100%; margin-top: 15px; }
-      td, th { border: 1px solid black; padding: 5px; text-align: center; vertical-align: middle; }
-      .text-left { text-align: left; }
-      .font-bold { font-weight: bold; }
-    </style></head><body>
-  `
+  const preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export</title><style>body { font-family: 'Times New Roman', serif; font-size: 11pt; } table { border-collapse: collapse; width: 100%; margin-top: 15px; } td, th { border: 1px solid black; padding: 5px; text-align: center; vertical-align: middle; } .text-left { text-align: left; } .font-bold { font-weight: bold; }</style></head><body>`
   const postHtml = "</body></html>"
   const blob = new Blob(['\ufeff', preHtml + content + postHtml], { type: 'application/msword' })
   const url = URL.createObjectURL(blob)
@@ -120,12 +98,20 @@ const unduhWord = (elementId, filename) => {
   URL.revokeObjectURL(url)
 }
 
-// 4. EXPORT KE MS EXCEL (Khusus KP)
+// FORMAT EXCEL DIPERBAIKI (Tabel Border Tembus)
 const unduhExcel = (elementId, filename) => {
   const content = document.getElementById(elementId).innerHTML
   const preHtml = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-    <head><meta charset="UTF-8"><style>table{border-collapse:collapse;} td,th{border:1px solid black; padding:5px; text-align:center;}</style></head><body>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        table { border-collapse: collapse; font-family: Arial, sans-serif; }
+        th { border: 1px solid #000000; padding: 8px; text-align: center; background-color: #f3f4f6; font-weight: bold; }
+        td { border: 1px solid #000000; padding: 8px; vertical-align: middle; }
+      </style>
+    </head>
+    <body>
   `
   const postHtml = "</body></html>"
   const blob = new Blob([preHtml + content + postHtml], { type: 'application/vnd.ms-excel' })
@@ -194,40 +180,44 @@ const unduhExcel = (elementId, filename) => {
           </button>
         </div>
         
-        <div class="overflow-x-auto border rounded-lg">
-          <table id="export-kp" class="w-full text-sm border-collapse">
-            <thead>
-              <tr>
-                <th colspan="8" style="text-align: left; border: none; font-weight: bold; font-size: 14pt;">NOMINASI KENAIKAN PANGKAT PERIODE APRIL 2026</th>
-              </tr>
-              <tr>
-                <th colspan="8" style="text-align: left; border: none; font-weight: bold; font-size: 14pt; padding-bottom: 15px;">BPS PROVINSI KALIMANTAN TENGAH</th>
-              </tr>
-              <tr class="bg-gray-100 font-bold">
-                <th style="border: 1px solid black; padding: 8px;">No</th>
-                <th style="border: 1px solid black; padding: 8px;">NIP</th>
-                <th style="border: 1px solid black; padding: 8px;">Nama</th>
-                <th style="border: 1px solid black; padding: 8px;">Jabatan</th>
-                <th style="border: 1px solid black; padding: 8px;">Jenis Kenaikan Pangkat</th>
-                <th style="border: 1px solid black; padding: 8px;">Gol Yang di usulkan</th>
-                <th style="border: 1px solid black; padding: 8px;">Satker</th>
-                <th style="border: 1px solid black; padding: 8px;">Estimasi periode Angka Kredit</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(p, i) in listKP" :key="p.id" class="hover:bg-blue-50/50">
-                <td style="border: 1px solid black; padding: 6px; text-align: center;">{{ i + 1 }}</td>
-                <td style="border: 1px solid black; padding: 6px; text-align: center;">{{ p.nip }}</td>
-                <td style="border: 1px solid black; padding: 6px; text-align: left;">{{ p.nama }}</td>
-                <td style="border: 1px solid black; padding: 6px; text-align: left;">{{ p.jabatan }}</td>
-                <td style="border: 1px solid black; padding: 6px; text-align: center;">Fungsional</td>
-                <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold;">{{ p.nextGolru }}</td>
-                <td style="border: 1px solid black; padding: 6px; text-align: left;">{{ p.unit_kerja }}</td>
-                <td style="border: 1px solid black; padding: 6px; text-align: right;">{{ p.totalAK.toFixed(3) }}</td>
-              </tr>
-              <tr v-if="listKP.length === 0"><td colspan="8" class="p-4 text-center text-gray-500 italic">Belum ada pegawai yang memenuhi syarat AK untuk Kenaikan Pangkat.</td></tr>
-            </tbody>
-          </table>
+        <div class="overflow-x-auto border rounded-lg bg-white p-2">
+          <div id="export-kp">
+            <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11pt;">
+              <thead>
+                <tr>
+                  <th colspan="8" style="text-align: left; border: none; font-weight: bold; font-size: 14pt;">NOMINASI KENAIKAN PANGKAT PERIODE APRIL 2026</th>
+                </tr>
+                <tr>
+                  <th colspan="8" style="text-align: left; border: none; font-weight: bold; font-size: 14pt; padding-bottom: 15px;">BPS PROVINSI KALIMANTAN TENGAH</th>
+                </tr>
+                <tr style="background-color: #f3f4f6; font-weight: bold;">
+                  <th style="border: 1px solid black; padding: 8px; text-align: center;">No</th>
+                  <th style="border: 1px solid black; padding: 8px; text-align: center;">NIP</th>
+                  <th style="border: 1px solid black; padding: 8px; text-align: center;">Nama</th>
+                  <th style="border: 1px solid black; padding: 8px; text-align: center;">Jabatan</th>
+                  <th style="border: 1px solid black; padding: 8px; text-align: center;">Jenis Kenaikan Pangkat</th>
+                  <th style="border: 1px solid black; padding: 8px; text-align: center;">Gol Yang diusulkan</th>
+                  <th style="border: 1px solid black; padding: 8px; text-align: center;">Satker</th>
+                  <th style="border: 1px solid black; padding: 8px; text-align: center;">Total AK (Estimasi)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(p, i) in listKP" :key="p.id" class="hover:bg-blue-50/50 transition">
+                  <td style="border: 1px solid black; padding: 6px; text-align: center;">{{ i + 1 }}</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: center;">&nbsp;{{ p.nip_baru || p.nip }}</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: left;">{{ p.nama_lengkap || p.nama }}</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: left;">{{ p.jabatan }} {{ p.jenjang_jabatan }}</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: center;">Fungsional</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: center; font-weight: bold; color: #166534;">{{ p.nextPangkat }} ({{ p.nextGolru }})</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: left;">{{ p.unit_kerja }}</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: right; font-weight: bold;">{{ p.totalAK.toFixed(3) }}</td>
+                </tr>
+                <tr v-if="listKP.length === 0">
+                   <td colspan="8" style="border: 1px solid black; padding: 15px; text-align: center; color: #6b7280; font-style: italic;">Belum ada pegawai yang memenuhi syarat AK untuk Kenaikan Pangkat.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -239,8 +229,8 @@ const unduhExcel = (elementId, filename) => {
           </button>
         </div>
         
-        <div class="overflow-x-auto border rounded-lg bg-white">
-          <div id="export-ukom" class="p-4">
+        <div class="overflow-x-auto border rounded-lg bg-white p-2">
+          <div id="export-ukom">
             <div style="text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 15px; font-family: 'Times New Roman', serif;">
               USULAN PESERTA<br>
               UJI KOMPETENSI KENAIKAN JENJANG FUNGSIONAL<br>
@@ -267,10 +257,10 @@ const unduhExcel = (elementId, filename) => {
               <tbody>
                 <tr v-for="(p, i) in listUkom" :key="p.id">
                   <td style="border: 1px solid black; padding: 5px;">{{ i + 1 }}.</td>
-                  <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.nama }}</td>
-                  <td style="border: 1px solid black; padding: 5px;">{{ p.nip }}</td>
-                  <td style="border: 1px solid black; padding: 5px;">{{ p.pangkat }}</td>
-                  <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.jabatan }}</td>
+                  <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.nama_lengkap || p.nama }}</td>
+                  <td style="border: 1px solid black; padding: 5px;">{{ p.nip_baru || p.nip }}</td>
+                  <td style="border: 1px solid black; padding: 5px;">{{ p.pangkat }} ({{ p.golru }})</td>
+                  <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.jabatan }} {{ p.jenjang_jabatan }}</td>
                   <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">{{ p.nextJenjangLengkap }}</td>
                   <td style="border: 1px solid black; padding: 5px;">KJ</td>
                   <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.unit_kerja }}</td>
@@ -291,8 +281,8 @@ const unduhExcel = (elementId, filename) => {
           </button>
         </div>
         
-        <div class="overflow-x-auto border rounded-lg bg-white">
-          <div id="export-assess" class="p-4">
+        <div class="overflow-x-auto border rounded-lg bg-white p-2">
+          <div id="export-assess">
             <div style="text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 15px; font-family: 'Times New Roman', serif;">
               USULAN CALON PESERTA ASSESSMENT<br>
               SELEKSI PEJABAT FUNGSIONAL AHLI MADYA<br>
@@ -320,10 +310,10 @@ const unduhExcel = (elementId, filename) => {
               <tbody>
                 <tr v-for="(p, i) in listAssessment" :key="p.id">
                   <td style="border: 1px solid black; padding: 5px;">{{ i + 1 }}</td>
-                  <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.nama }}</td>
-                  <td style="border: 1px solid black; padding: 5px;">{{ p.nip }}</td>
-                  <td style="border: 1px solid black; padding: 5px;">{{ p.pangkat }}</td>
-                  <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.jabatan }}</td>
+                  <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.nama_lengkap || p.nama }}</td>
+                  <td style="border: 1px solid black; padding: 5px;">{{ p.nip_baru || p.nip }}</td>
+                  <td style="border: 1px solid black; padding: 5px;">{{ p.pangkat }} ({{ p.golru }})</td>
+                  <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.jabatan }} {{ p.jenjang_jabatan }}</td>
                   <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">{{ p.nextJenjangLengkap }}</td>
                   <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.unit_kerja }}</td>
                   <td style="border: 1px solid black; padding: 5px;">-</td>
@@ -345,8 +335,8 @@ const unduhExcel = (elementId, filename) => {
           </button>
         </div>
         
-        <div class="overflow-x-auto border rounded-lg bg-white">
-          <div id="export-jft" class="p-4">
+        <div class="overflow-x-auto border rounded-lg bg-white p-2">
+          <div id="export-jft">
             <div style="text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 15px; font-family: 'Times New Roman', serif;">
               USULAN PENGANGKATAN PERPINDAHAN JABATAN DAN KENAIKAN JENJANG JABATAN FUNGSIONAL<br>
               BPS PROVINSI KALIMANTAN TENGAH TAHUN 2026
@@ -369,10 +359,10 @@ const unduhExcel = (elementId, filename) => {
               <tbody>
                 <tr v-for="(p, i) in listJFT" :key="p.id">
                   <td style="border: 1px solid black; padding: 5px;">{{ i + 1 }}.</td>
-                  <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.nama }}</td>
-                  <td style="border: 1px solid black; padding: 5px;">{{ p.nip }}</td>
-                  <td style="border: 1px solid black; padding: 5px;">{{ p.pangkat }}</td>
-                  <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.jabatan }}</td>
+                  <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.nama_lengkap || p.nama }}</td>
+                  <td style="border: 1px solid black; padding: 5px;">{{ p.nip_baru || p.nip }}</td>
+                  <td style="border: 1px solid black; padding: 5px;">{{ p.pangkat }} ({{ p.golru }})</td>
+                  <td style="border: 1px solid black; padding: 5px; text-align: left;">{{ p.jabatan }} {{ p.jenjang_jabatan }}</td>
                   <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">{{ p.nextJenjangLengkap }}</td>
                   <td style="border: 1px solid black; padding: 5px;">{{ p.totalAK.toFixed(3) }}</td>
                 </tr>
@@ -390,6 +380,5 @@ const unduhExcel = (elementId, filename) => {
 <style scoped>
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-/* Hilangkan tombol/navigasi saat nge-print langsung (jika ada yang iseng Ctrl+P) */
 @media print { .no-print { display: none !important; } }
 </style>

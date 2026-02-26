@@ -87,7 +87,7 @@ const kamusPangkat = [
 ]
 
 const kamusJabatan = [
-  { keyword: 'utama', nama: 'Ahli Utama', koef_tahun: 50, target_jenjang: null },
+      { keyword: 'utama', nama: 'Ahli Utama', koef_tahun: 50, target_jenjang: null },
       { keyword: 'madya', nama: 'Ahli Madya', koef_tahun: 37.5, target_jenjang: 450 },
       { keyword: 'muda', nama: 'Ahli Muda', koef_tahun: 25, target_jenjang: 200 },
       { keyword: 'pertama', nama: 'Ahli Pertama', koef_tahun: 12.5, target_jenjang: 100 },
@@ -230,6 +230,9 @@ const showModalKalkulator = ref(false)
 const isEditing = ref(false)
 const editingId = ref(null)
 
+// 🚀 Variabel baru untuk mengunci dropdown jabatan
+const currentPegawaiJabatan = ref('')
+
 const formKalkulasi = ref({ 
   tahun: new Date().getFullYear(), 
   bulan_mulai: 1, 
@@ -288,6 +291,9 @@ const bukaModalTambah = () => {
     }
   }
 
+  // 🚀 Kunci jabatan yang terdeteksi agar dropdown sisanya mati
+  currentPegawaiJabatan.value = defaultJabatan;
+
   formKalkulasi.value = { 
     tahun: new Date().getFullYear(), 
     bulan_mulai: 1, 
@@ -295,7 +301,8 @@ const bukaModalTambah = () => {
     jabatan: defaultJabatan, 
     predikat: 'Baik', 
     sumber: 'Konversi SKP', 
-    ak_didapat: 0 
+    ak_didapat: 0,
+    manual_bulan: '', manual_persen: '', manual_koef: ''
   }
   showModalKalkulator.value = true
 }
@@ -303,6 +310,10 @@ const bukaModalTambah = () => {
 const bukaModalEdit = (item) => {
   isEditing.value = true; 
   editingId.value = item.id;
+
+  // 🚀 Kunci jabatan sesuai dengan data sejarah (history) yang diedit
+  currentPegawaiJabatan.value = item.jabatan;
+
   formKalkulasi.value = { 
     tahun: item.tahun, 
     bulan_mulai: item.bulan_mulai || 1, 
@@ -705,8 +716,22 @@ onMounted(() => {
                <div><label class="block text-xs font-bold mb-1">Bulan Mulai</label><select v-model="formKalkulasi.bulan_mulai" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option></select></div>
                <div><label class="block text-xs font-bold mb-1">Bulan Selesai</label><select v-model="formKalkulasi.bulan_selesai" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option></select></div>
             </div>
-            <div class="mb-4"><label class="block text-xs font-bold mb-1">Jabatan Saat Evaluasi</label><select v-model="formKalkulasi.jabatan" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="j in kamusJabatan" :value="j.nama">{{ j.nama }} (Koefisien: {{ j.koef_tahun }})</option></select></div>
-            <div class="mb-4"><label class="block text-xs font-bold mb-1">Predikat Kinerja</label><select v-model="formKalkulasi.predikat" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="p in kamusPredikat" :value="p.nama">{{ p.nama }} ({{ p.persen * 100 }}%)</option></select></div>
+            <div class="mb-4">
+             <label class="block text-xs font-bold mb-1">Jabatan Saat Evaluasi</label>
+             <select v-model="formKalkulasi.jabatan" class="w-full p-2 border rounded bg-gray-50 outline-none focus:border-bps-blue cursor-not-allowed">
+                <option 
+                  v-for="j in kamusJabatan" 
+                  :key="j.nama" 
+                  :value="j.nama" 
+                  :disabled="j.nama !== currentPegawaiJabatan"
+                  :class="j.nama !== currentPegawaiJabatan ? 'text-gray-300' : 'font-bold text-bps-blue'"
+                >
+                  {{ j.nama }} (Koefisien: {{ j.koef_tahun }})
+                </option>
+             </select>
+             <p class="text-[9px] text-gray-500 mt-1 italic">*Jabatan dikunci otomatis mengikuti profil/sejarah pegawai.</p>
+          </div>
+          <div class="mb-4"><label class="block text-xs font-bold mb-1">Predikat Kinerja</label><select v-model="formKalkulasi.predikat" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue"><option v-for="p in kamusPredikat" :value="p.nama">{{ p.nama }} ({{ p.persen * 100 }}%)</option></select></div>
             
             <div class="p-4 bg-blue-50 border rounded text-center flex flex-col items-center justify-center">
                <p class="text-xs uppercase font-bold text-blue-600 mb-1">Hasil Konversi Angka Kredit</p>
