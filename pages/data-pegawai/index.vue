@@ -8,6 +8,39 @@ onMounted(() => {
   store.loadFromStorage()
 })
 
+/* ================= DATA MASTER ================= */
+const daftarPangkatGolru = [
+  { pangkat: 'Pengatur', golru: 'II/c' },
+  { pangkat: 'Pengatur Tk.I', golru: 'II/d' },
+  { pangkat: 'Penata Muda', golru: 'III/a' },
+  { pangkat: 'Penata Muda Tk.I', golru: 'III/b' },
+  { pangkat: 'Penata', golru: 'III/c' },
+  { pangkat: 'Penata Tk.I', golru: 'III/d' },
+  { pangkat: 'Pembina', golru: 'IV/a' },
+  { pangkat: 'Pembina Tk.I', golru: 'IV/b' },
+  { pangkat: 'Pembina Utama Muda', golru: 'IV/c' },
+  { pangkat: 'Pembina Utama Madya', golru: 'IV/d' },
+  { pangkat: 'Pembina Utama', golru: 'IV/e' },
+]
+
+const daftarUnitKerja = [
+  'BPS Provinsi Kalimantan Tengah',
+  'BPS Kota Palangka Raya',
+  'BPS Kabupaten Barito Selatan',
+  'BPS Kabupaten Barito Timur',
+  'BPS Kabupaten Barito Utara',
+  'BPS Kabupaten Gunung Mas',
+  'BPS Kabupaten Kapuas',
+  'BPS Kabupaten Katingan',
+  'BPS Kabupaten Kotawaringin Barat',
+  'BPS Kabupaten Kotawaringin Timur',
+  'BPS Kabupaten Lamandau',
+  'BPS Kabupaten Murung Raya',
+  'BPS Kabupaten Pulang Pisau',
+  'BPS Kabupaten Seruyan',
+  'BPS Kabupaten Sukamara'
+]
+
 /* ================= FILTER & STATS ================= */
 const searchQuery = ref('')
 const selectedStatus = ref<'Semua' | 'Aktif' | 'Tugas Belajar'>('Semua')
@@ -87,6 +120,14 @@ const savePegawai = () => {
   }
   showModal.value = false
 }
+
+// Otomatis isi Golru saat Pangkat dipilih
+watch(() => formPegawai.value.pangkat, (newPangkat) => {
+  const match = daftarPangkatGolru.find(p => p.pangkat === newPangkat)
+  if (match) {
+    formPegawai.value.golru = match.golru
+  }
+})
 </script>
 
 <template>
@@ -131,7 +172,7 @@ const savePegawai = () => {
             <tr>
               <th class="p-4 border-b">Pegawai</th>
               <th class="p-4 border-b">Pangkat/Gol</th>
-              <th class="p-4 border-b">Jabatan</th>
+              <th class="p-4 border-b">Jabatan & Pangkat</th>
               <th class="p-4 border-b">Unit Kerja</th>
               <th class="p-4 border-b text-center">Status</th>
               <th class="p-4 border-b text-center">Aksi</th>
@@ -147,7 +188,7 @@ const savePegawai = () => {
                 <span class="font-medium">{{ p.pangkat }}</span>
                 <div class="text-gray-500 text-xs">{{ p.golru }}</div>
               </td>
-              <td class="p-4 text-sm font-medium">{{ p.jabatan }}</td>
+              <td class="p-4 text-sm font-medium">{{ p.jabatan }} {{ p.jenjang_jabatan }}</td>
               <td class="p-4 text-sm text-gray-600">{{ p.unit_kerja }}</td>
               <td class="p-4 text-center">
                 <span :class="p.status_kepegawaian === 'Aktif' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-orange-100 text-orange-700 border-orange-200'" class="px-3 py-1 rounded-full text-[10px] font-bold uppercase border">
@@ -231,8 +272,13 @@ const savePegawai = () => {
           <div class="space-y-1">
             <label class="text-xs font-bold text-gray-600 uppercase">Pangkat / Golru</label>
             <div class="flex gap-2">
-              <input v-model="formPegawai.pangkat" class="flex-1 border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Pembina" />
-              <input v-model="formPegawai.golru" class="w-24 border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-center" placeholder="IV/a" />
+              <select v-model="formPegawai.pangkat" class="flex-1 border p-3 rounded-xl outline-none bg-white focus:ring-2 focus:ring-blue-500">
+                <option value="" disabled>Pilih Pangkat</option>
+                <option v-for="item in daftarPangkatGolru" :key="item.pangkat" :value="item.pangkat">
+                  {{ item.pangkat }}
+                </option>
+              </select>
+              <input v-model="formPegawai.golru" readonly class="w-24 border p-3 rounded-xl outline-none bg-gray-50 text-gray-500 text-center font-bold" placeholder="Golru" />
             </div>
           </div>
           <div class="space-y-1">
@@ -249,7 +295,12 @@ const savePegawai = () => {
           </div>
           <div class="space-y-1">
             <label class="text-xs font-bold text-gray-600 uppercase">Unit Kerja</label>
-            <input v-model="formPegawai.unit_kerja" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
+            <select v-model="formPegawai.unit_kerja" class="w-full border p-3 rounded-xl outline-none bg-white focus:ring-2 focus:ring-blue-500">
+              <option value="" disabled>Pilih Unit Kerja</option>
+              <option v-for="unit in daftarUnitKerja" :key="unit" :value="unit">
+                {{ unit }}
+              </option>
+            </select>
           </div>
           <div class="space-y-1">
             <label class="text-xs font-bold text-gray-600 uppercase">Instansi</label>
