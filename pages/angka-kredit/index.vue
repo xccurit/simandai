@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { usePegawaiStore } from '~/stores/usePegawaiStore'
 import { useCookie } from '#app'
+import { onMounted } from 'vue'
 
 // =====================================================================
 // 1. MASTER DATA & HELPER FUNGSI
@@ -429,6 +430,10 @@ const unduhPDF = (elementId) => {
 }
 
 const updateStatusPegawai = () => { store.updateStatusPegawai(selectedPegawai.value.id, formStatus.value.status); showModalStatus.value = false; formStatus.value.status = '' }
+
+onMounted(() => {
+  store.loadFromStorage()
+})
 </script>
 
 <template>
@@ -459,7 +464,7 @@ const updateStatusPegawai = () => { store.updateStatusPegawai(selectedPegawai.va
           <tbody class="divide-y divide-gray-100 text-sm">
             <tr v-for="(peg, index) in paginatedPegawai" :key="peg.id" class="hover:bg-blue-50/30">
               <td class="px-6 py-4 text-center">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
-              <td class="px-6 py-4"><div class="font-bold text-gray-900">{{ peg.nama }}</div><div class="text-xs text-gray-500 mt-0.5">{{ peg.nip }}</div></td>
+              <td class="px-6 py-4"><div class="font-bold text-gray-900">{{ peg.nama_lengkap || peg.nama }}</div><div class="text-xs text-gray-500 mt-0.5">{{ peg.nip_baru || peg.nip }}</div></td>
               <td class="px-6 py-4"><div class="font-medium text-bps-blue">{{ peg.jabatan }}</div><div class="text-xs text-gray-500 mt-0.5">{{ peg.pangkat }}</div></td>
               <td class="px-6 py-4 text-center"><span class="px-2 py-1 bg-gray-100 rounded text-xs border">{{ peg.status_kepegawaian }}</span></td>
               <td class="px-6 py-4 text-center"><button @click="lihatDetailAK(peg)" class="bg-bps-blue text-white px-4 py-2 rounded-md font-semibold text-xs hover:bg-bps-dark">Buka Data</button></td>
@@ -482,8 +487,8 @@ const updateStatusPegawai = () => { store.updateStatusPegawai(selectedPegawai.va
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <div class="flex flex-col md:flex-row items-start justify-between gap-4">
           <div>
-            <h3 class="text-xl font-bold text-gray-800">{{ selectedPegawai.nama }}</h3>
-            <p class="text-sm text-gray-500 mt-1">{{ selectedPegawai.nip }} | {{ formatUnitKerja(selectedPegawai.unit_kerja) }}</p>
+            <h3 class="text-xl font-bold text-gray-800">{{ selectedPegawai.nama_lengkap || selectedPegawai.nama }}</h3>
+            <p class="text-sm text-gray-500 mt-1">{{ selectedPegawai.nip_baru || selectedPegawai.nip }} | {{ formatUnitKerja(selectedPegawai.unit_kerja) }}</p>
             <div class="flex items-center gap-3 mt-3 text-sm">
               <span class="bg-blue-50 text-bps-dark px-2.5 py-1 rounded-md font-medium border border-blue-100">{{ selectedPegawai.jabatan }}</span>
               <span class="bg-gray-50 text-gray-600 px-2.5 py-1 rounded-md font-medium border border-gray-200">{{ selectedPegawai.pangkat }}</span>
@@ -678,11 +683,11 @@ const updateStatusPegawai = () => { store.updateStatusPegawai(selectedPegawai.va
            <table class="w-full border-collapse border border-black mb-6">
              <tbody>
               <tr><td colspan="3" class="border border-black font-bold text-center py-1 uppercase tracking-wider bg-gray-100">PEJABAT FUNGSIONAL YANG DINILAI</td></tr>
-              <tr><td class="border border-black px-2 w-6 text-center">1</td><td class="border border-black px-2 w-56">N a m a</td><td class="border border-black px-2 font-bold">{{ printData.pegawai.nama }}</td></tr>
-              <tr><td class="border border-black px-2 text-center">2</td><td class="border border-black px-2">NIP</td><td class="border border-black px-2">{{ printData.pegawai.nip }}</td></tr>
+              <tr><td class="border border-black px-2 w-6 text-center">1</td><td class="border border-black px-2 w-56">N a m a</td><td class="border border-black px-2 font-bold">{{ printData.pegawai.nama_lengkap || printData.pegawai.nama }}</td></tr>
+              <tr><td class="border border-black px-2 text-center">2</td><td class="border border-black px-2">NIP</td><td class="border border-black px-2">{{ printData.pegawai.nip_baru || printData.pegawai.nip }}</td></tr>
               <tr><td class="border border-black px-2 text-center">3</td><td class="border border-black px-2">Nomor Seri KARPEG</td><td class="border border-black px-2">{{ printData.pegawai.karpeg }}</td></tr>
-              <tr><td class="border border-black px-2 text-center">4</td><td class="border border-black px-2">Tempat dan Tanggal Lahir</td><td class="border border-black px-2">{{ printData.pegawai.ttl }}</td></tr>
-              <tr><td class="border border-black px-2 text-center">5</td><td class="border border-black px-2">Jenis Kelamin</td><td class="border border-black px-2">{{ printData.pegawai.jk }}</td></tr>
+              <tr><td class="border border-black px-2 text-center">3</td><td class="border border-black px-2">Tempat dan Tanggal Lahir</td><td class="border border-black px-2">{{ printData.pegawai.tempat_lahir }}, {{ printData.pegawai.tanggal_lahir }}</td></tr>
+              <tr><td class="border border-black px-2 text-center">5</td><td class="border border-black px-2">Jenis Kelamin</td><td class="border border-black px-2">{{ printData.pegawai.jenis_kelamin || printData.pegawai.jk }}</td></tr>
               <tr><td class="border border-black px-2 text-center">6</td><td class="border border-black px-2">Pangkat/Golongan Ruang/TMT</td><td class="border border-black px-2">{{ printData.pegawai.pangkat }} / 1 April 2024</td></tr>
               <tr><td class="border border-black px-2 text-center">7</td><td class="border border-black px-2">Jabatan Fungsional/TMT</td><td class="border border-black px-2">{{ printData.jabatan }}</td></tr>
               <tr><td class="border border-black px-2 text-center">8</td><td class="border border-black px-2">Unit Kerja</td><td class="border border-black px-2">{{ formatUnitKerja(printData.pegawai.unit_kerja) }}</td></tr>
@@ -751,11 +756,11 @@ const updateStatusPegawai = () => { store.updateStatusPegawai(selectedPegawai.va
            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11pt;">
              <tbody>
               <tr><td colspan="3" style="border: 1px solid black; padding: 4px; font-weight: bold; text-align: center; background-color: #e5e7eb;">PEJABAT FUNGSIONAL YANG DINILAI</td></tr>
-              <tr><td style="border: 1px solid black; padding: 4px; width: 30px; text-align: center;">1</td><td style="border: 1px solid black; padding: 4px; width: 220px;">N a m a</td><td style="border: 1px solid black; padding: 4px; font-weight: bold;">{{ printData.pegawai.nama }}</td></tr>
-              <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">2</td><td style="border: 1px solid black; padding: 4px;">NIP</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.nip }}</td></tr>
+              <tr><td style="border: 1px solid black; padding: 4px; width: 30px; text-align: center;">1</td><td style="border: 1px solid black; padding: 4px; width: 220px;">N a m a</td><td style="border: 1px solid black; padding: 4px; font-weight: bold;">{{ printData.pegawai.nama_lengkap || printData.pegawai.nama }}</td></tr>
+              <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">2</td><td style="border: 1px solid black; padding: 4px;">NIP</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.nip_baru || printData.pegawai.nip }}</td></tr>
               <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">3</td><td style="border: 1px solid black; padding: 4px;">Nomor Seri KARPEG</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.karpeg }}</td></tr>
-              <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">4</td><td style="border: 1px solid black; padding: 4px;">Tempat dan Tanggal Lahir</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.ttl }}</td></tr>
-              <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">5</td><td style="border: 1px solid black; padding: 4px;">Jenis Kelamin</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.jk }}</td></tr>
+              <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">4</td><td style="border: 1px solid black; padding: 4px;">Tempat dan Tanggal Lahir</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.tempat_lahir }}, {{ printData.pegawai.tanggal_lahir }}</td></tr>
+              <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">5</td><td style="border: 1px solid black; padding: 4px;">Jenis Kelamin</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.jenis_kelamin || printData.pegawai.jk }}</td></tr>
               <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">6</td><td style="border: 1px solid black; padding: 4px;">Pangkat/Golongan Ruang/TMT</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.pangkat }} / 1 April 2024</td></tr>
               <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">7</td><td style="border: 1px solid black; padding: 4px;">Jabatan Fungsional/TMT</td><td style="border: 1px solid black; padding: 4px;">{{ printData.pegawai.jabatan }}</td></tr>
               <tr><td style="border: 1px solid black; padding: 4px; text-align: center;">8</td><td style="border: 1px solid black; padding: 4px;">Unit Kerja</td><td style="border: 1px solid black; padding: 4px;">{{ formatUnitKerja(printData.pegawai.unit_kerja) }}</td></tr>
@@ -859,13 +864,13 @@ const updateStatusPegawai = () => { store.updateStatusPegawai(selectedPegawai.va
                   <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; width: 25px; padding: 3px;">1</td>
                   <td style="border: 1px solid black; padding: 3px 5px; width: 240px;">N a m a</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px; font-weight: bold;">{{ printData.pegawai.nama }}</td>
+                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px; font-weight: bold;">{{ printData.pegawai.nama_lengkap || printData.pegawai.nama }}</td>
               </tr>
               <tr>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">2</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">NIP</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.nip }}</td>
+                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.nip_baru || printData.pegawai.nip }}</td>
               </tr>
               <tr>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
@@ -877,13 +882,13 @@ const updateStatusPegawai = () => { store.updateStatusPegawai(selectedPegawai.va
                   <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">4</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">Tempat dan Tanggal Lahir</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.ttl }}</td>
+                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.tempat_lahir }}, {{ printData.pegawai.tanggal_lahir }}</td>
               </tr>
               <tr>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;">5</td>
                   <td style="border: 1px solid black; padding: 3px 5px;">Jenis Kelamin</td>
-                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.jk }}</td>
+                  <td colspan="3" style="border: 1px solid black; padding: 3px 5px;">{{ printData.pegawai.jenis_kelamin || printData.pegawai.jk }}</td>
               </tr>
               <tr>
                   <td style="border: 1px solid black; text-align: center; padding: 3px;"></td>
@@ -1002,7 +1007,7 @@ const updateStatusPegawai = () => { store.updateStatusPegawai(selectedPegawai.va
            <div class="flex justify-between items-end mt-1 mb-8">
              <div class="text-[10px]">
                 <p class="font-bold mb-1">ASLI Penetapan Angka Kredit untuk:</p>
-                <p>1. Sdr. {{ printData.pegawai.nama }}</p>
+                <p>1. Sdr. {{ printData.pegawai.nama_lengkap || printData.pegawai.nama }}</p>
                 <p>2. Sekretariat Tim Penilai Kinerja Badan Pusat Statistik</p>
                 <p>3. Kepala Biro Sumber Daya Manusia</p>
              </div>
