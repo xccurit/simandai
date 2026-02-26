@@ -4,33 +4,32 @@ import { useCookie } from '#app'
 import { ref } from 'vue'
 
 const router = useRouter()
-// Mengambil akses cookie yang kita buat di middleware sebelumnya
 const isAuth = useCookie('isLoggedIn')
 
 const handleLogout = () => {
   if (confirm('Apakah Anda yakin ingin keluar dari aplikasi?')) {
-    // 1. Hapus cookie akses
     isAuth.value = null
-    // 2. Tendang ke halaman login
     router.push('/login')
   }
 }
 
-// Variabel untuk mengontrol buka/tutup sidebar di layar HP/Kecil
 const isSidebarOpen = ref(false)
 </script>
 
 <template>
   <div class="flex h-screen bg-gray-50 overflow-hidden">
     
-    <div class="md:hidden flex items-center justify-between bg-white border-b border-gray-200 p-3 fixed w-full z-30 shadow-sm top-0 left-0 h-14 no-print">
-      <div class="flex items-center gap-3">
+    <div class="md:hidden flex items-center bg-white border-b border-gray-200 fixed w-full z-30 shadow-sm top-0 left-0 h-14 no-print overflow-hidden">
+      <div class="bg-white z-10 px-4 py-2 h-full flex items-center shadow-[10px_0_15px_-10px_rgba(255,255,255,1)]">
         <button @click="isSidebarOpen = !isSidebarOpen" class="text-gray-600 hover:text-bps-blue p-1 rounded focus:outline-none">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
-        <img src="/logo-bps-kalteng1.png" alt="Logo BPS" class="h-6 w-auto" />
       </div>
-      <h1 class="font-extrabold text-bps-blue tracking-wider text-sm">SIMANDAI</h1>
+      <div class="marquee-container flex-1 h-full flex items-center">
+        <h1 class="marquee-text-slow text-[20px] font-extrabold text-bps-blue tracking-wider uppercase">
+          SISTEM INFORMASI MANAJEMEN DATA PEGAWAI
+        </h1>
+      </div>
     </div>
 
     <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity no-print"></div>
@@ -104,6 +103,7 @@ const isSidebarOpen = ref(false)
 }
 .marquee-container { overflow: hidden; white-space: nowrap; position: relative; width: 100%; }
 .marquee-text { display: inline-block; padding-left: 100%; animation: scroll-left 6s linear infinite; }
+.marquee-text-slow { display: inline-block; padding-left: 100%; animation: scroll-left 15s linear infinite; }
 @keyframes scroll-left { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
 @media print { .no-print { display: none !important; } .print-main { margin-left: 0 !important; padding: 0 !important; margin-top: 0 !important; } }
 </style>
