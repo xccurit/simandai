@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, reactive, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router' // <-- TAMBAHKAN INI
+import { useRouter } from 'vue-router'
 import { usePegawaiStore, type Pegawai } from '~/stores/usePegawaiStore'
 import { useCookie } from '#app'
 
 const store = usePegawaiStore()
-const router = useRouter() // <-- TAMBAHKAN INI
+const router = useRouter()
 const userSesi = useCookie('userProfile', { default: () => ({ role: 'Admin', unit_kerja: '', nip: '' }) })
 
 onMounted(() => {
@@ -13,10 +13,7 @@ onMounted(() => {
   
   // 🚀 AUTO-REDIRECT KHUSUS PEGAWAI
   if (userSesi.value.role === 'Pegawai') {
-    // Cari ID pegawai tersebut berdasarkan NIP di cookie
     const myData = store.pegawaiList.find(p => p.nip_baru === userSesi.value.nip || p.nip_lama === userSesi.value.nip)
-    
-    // Jika ketemu, langsung lempar ke halaman detail profilnya
     if (myData) {
       router.replace(`/data-pegawai/${myData.id}`)
     }
@@ -72,13 +69,12 @@ const normalizeUnitKerja = (str: string) => {
   return str.toLowerCase().replace(/bps|kabupaten|kab\.|kota|provinsi|prov\./gi, '').trim();
 }
 
-// 1. Filter Data Berdasarkan Role & Wilayah Terlebih Dahulu
+// 1. Filter Data Berdasarkan Role & Wilayah
 const roleFilteredPegawai = computed(() => {
   const list = store.pegawaiList;
   const role = userSesi.value.role;
   
   if (role === 'Pegawai') {
-    // 🚀 PERBAIKAN: Gunakan nip_lama, bukan nip
     return list.filter(p => p.nip_baru === userSesi.value.nip || p.nip_lama === userSesi.value.nip);
   } else if (role === 'Supervisor Kabko' || role === 'Operator') {
     const uKerjaSesi = normalizeUnitKerja(userSesi.value.unit_kerja);
@@ -96,16 +92,16 @@ const selectedStatus = ref<'Semua' | 'Aktif' | 'Tugas Belajar'>('Semua')
 
 const filteredPegawai = computed(() => {
   const query = searchQuery.value.toLowerCase()
-  return store.pegawaiList.filter((p) => {
+  return roleFilteredPegawai.value.filter((p) => {
     const matchStatus = selectedStatus.value === 'Semua' || p.status_kepegawaian === selectedStatus.value
     const matchSearch = p.nama_lengkap.toLowerCase().includes(query) || p.nip_baru.includes(query)
     return matchStatus && matchSearch
   })
 })
 
-const totalPegawai = computed(() => store.pegawaiList.length)
-const totalAktif = computed(() => store.pegawaiList.filter(p => p.status_kepegawaian === 'Aktif').length)
-const totalTugasBelajar = computed(() => store.pegawaiList.filter(p => p.status_kepegawaian === 'Tugas Belajar').length)
+const totalPegawai = computed(() => roleFilteredPegawai.value.length)
+const totalAktif = computed(() => roleFilteredPegawai.value.filter(p => p.status_kepegawaian === 'Aktif').length)
+const totalTugasBelajar = computed(() => roleFilteredPegawai.value.filter(p => p.status_kepegawaian === 'Tugas Belajar').length)
 
 /* ================= CRUD LOGIC ================= */
 const showModal = ref(false)
@@ -122,7 +118,7 @@ const emptyForm: Pegawai = {
   jenis_kelamin: 'Laki-laki',
   pangkat: '', 
   golru: '', 
-  tmt_pangkat: '', // Pastikan ini ada
+  tmt_pangkat: '',
   jabatan: '',
   jenis_jabatan: 'Fungsional', 
   jenjang_jabatan: '', 
@@ -181,12 +177,12 @@ watch(() => formPegawai.value.pangkat, (newPangkat) => {
 
 <template>
   <div class="max-w-7xl mx-auto space-y-10 pb-16 p-6">
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
         <h2 class="text-3xl font-bold text-gray-800">Data Pokok Pegawai</h2>
         <p class="text-gray-500">Master data pegawai aktif dan tugas belajar</p>
       </div>
-      <button @click="openTambah" class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition shadow-lg font-bold">
+      <button v-if="['Admin', 'Supervisor Prov'].includes(userSesi.role)" @click="openTambah" class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition shadow-lg font-bold">
         + Tambah Pegawai
       </button>
     </div>
@@ -224,7 +220,7 @@ watch(() => formPegawai.value.pangkat, (newPangkat) => {
               <th class="p-4 border-b">Jabatan & Pangkat</th>
               <th class="p-4 border-b">Unit Kerja</th>
               <th class="p-4 border-b text-center">Status</th>
-              <th class="p-4 border-b text-center">Aksi</th>
+              <th v-if="['Admin', 'Supervisor Prov'].includes(userSesi.role)" class="p-4 border-b text-center">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y">
@@ -244,7 +240,7 @@ watch(() => formPegawai.value.pangkat, (newPangkat) => {
                   {{ p.status_kepegawaian }}
                 </span>
               </td>
-              <td class="p-4 text-center">
+              <td v-if="['Admin', 'Supervisor Prov'].includes(userSesi.role)" class="p-4 text-center">
                 <div class="flex justify-center gap-3">
                   <button @click="openEdit(p)" class="text-blue-600 hover:text-blue-800 p-1 rounded-lg hover:bg-blue-100 transition" title="Edit">✏️</button>
                   <button @click="store.hapusPegawai(p.id)" class="text-red-600 hover:text-red-800 p-1 rounded-lg hover:bg-red-100 transition" title="Hapus">🗑️</button>
@@ -267,112 +263,51 @@ watch(() => formPegawai.value.pangkat, (newPangkat) => {
         </div>
         
         <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="space-y-4 md:col-span-2">
-             <h4 class="font-bold text-blue-600 border-b pb-1 text-sm uppercase">Identitas Utama</h4>
-          </div>
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-gray-600 uppercase">Nama Lengkap (Tanpa Gelar)</label>
-            <input v-model="formPegawai.nama_lengkap" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Budi Santoso" />
-            <p v-if="errors.nama_lengkap" class="text-red-500 text-[10px] font-bold">{{ errors.nama_lengkap }}</p>
-          </div>
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-gray-600 uppercase">NIP Baru (18 Digit)</label>
-            <input v-model="formPegawai.nip_baru" maxlength="18" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-mono" placeholder="199XXXXXXXXXXXXXXX" />
-            <p v-if="errors.nip_baru" class="text-red-500 text-[10px] font-bold">{{ errors.nip_baru }}</p>
-          </div>
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-gray-600 uppercase">NIP Lama</label>
-            <input v-model="formPegawai.nip_lama" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contoh: 3400..." />
-          </div>
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-gray-600 uppercase">No. Karpeg</label>
-            <input v-model="formPegawai.karpeg" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contoh: N-123456" />
-          </div>
+          <div class="space-y-4 md:col-span-2"><h4 class="font-bold text-blue-600 border-b pb-1 text-sm uppercase">Identitas Utama</h4></div>
+          <div class="space-y-1"><label class="text-xs font-bold text-gray-600 uppercase">Nama Lengkap</label><input v-model="formPegawai.nama_lengkap" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Budi Santoso" /><p v-if="errors.nama_lengkap" class="text-red-500 text-[10px] font-bold">{{ errors.nama_lengkap }}</p></div>
+          <div class="space-y-1"><label class="text-xs font-bold text-gray-600 uppercase">NIP Baru (18 Digit)</label><input v-model="formPegawai.nip_baru" maxlength="18" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-mono" placeholder="199XXXXXXXXXXXXXXX" /><p v-if="errors.nip_baru" class="text-red-500 text-[10px] font-bold">{{ errors.nip_baru }}</p></div>
+          <div class="space-y-1"><label class="text-xs font-bold text-gray-600 uppercase">NIP Lama</label><input v-model="formPegawai.nip_lama" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /></div>
+          <div class="space-y-1"><label class="text-xs font-bold text-gray-600 uppercase">No. Karpeg</label><input v-model="formPegawai.karpeg" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /></div>
 
-          <div class="space-y-4 md:col-span-2 mt-4">
-             <h4 class="font-bold text-blue-600 border-b pb-1 text-sm uppercase">Data Pribadi</h4>
-          </div>
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-gray-600 uppercase">Tempat Lahir</label>
-            <input v-model="formPegawai.tempat_lahir" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-gray-600 uppercase">Tanggal Lahir</label>
-            <input v-model="formPegawai.tanggal_lahir" type="date" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-gray-600 uppercase">Jenis Kelamin</label>
-            <select v-model="formPegawai.jenis_kelamin" class="w-full border p-3 rounded-xl outline-none bg-white focus:ring-2 focus:ring-blue-500">
-              <option value="Laki-laki">Laki-laki</option>
-              <option value="Perempuan">Perempuan</option>
-            </select>
-          </div>
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-gray-600 uppercase">Status</label>
-            <select v-model="formPegawai.status_kepegawaian" class="w-full border p-3 rounded-xl outline-none bg-white focus:ring-2 focus:ring-blue-500">
-              <option value="Aktif">Aktif</option>
-              <option value="Tugas Belajar">Tugas Belajar</option>
-            </select>
-          </div>
+          <div class="space-y-4 md:col-span-2 mt-4"><h4 class="font-bold text-blue-600 border-b pb-1 text-sm uppercase">Data Pribadi</h4></div>
+          <div class="space-y-1"><label class="text-xs font-bold text-gray-600 uppercase">Tempat Lahir</label><input v-model="formPegawai.tempat_lahir" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /></div>
+          <div class="space-y-1"><label class="text-xs font-bold text-gray-600 uppercase">Tanggal Lahir</label><input v-model="formPegawai.tanggal_lahir" type="date" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /></div>
+          <div class="space-y-1"><label class="text-xs font-bold text-gray-600 uppercase">Jenis Kelamin</label><select v-model="formPegawai.jenis_kelamin" class="w-full border p-3 rounded-xl outline-none bg-white focus:ring-2 focus:ring-blue-500"><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
+          <div class="space-y-1"><label class="text-xs font-bold text-gray-600 uppercase">Status</label><select v-model="formPegawai.status_kepegawaian" class="w-full border p-3 rounded-xl outline-none bg-white focus:ring-2 focus:ring-blue-500"><option value="Aktif">Aktif</option><option value="Tugas Belajar">Tugas Belajar</option></select></div>
 
-          <div class="space-y-4 md:col-span-2 mt-4">
-             <h4 class="font-bold text-blue-600 border-b pb-1 text-sm uppercase">Pangkat & Jabatan</h4>
-          </div>
+          <div class="space-y-4 md:col-span-2 mt-4"><h4 class="font-bold text-blue-600 border-b pb-1 text-sm uppercase">Pangkat & Jabatan</h4></div>
           <div class="space-y-1">
             <label class="text-xs font-bold text-gray-600 uppercase">Pangkat / Golru</label>
             <div class="flex gap-2">
               <select v-model="formPegawai.pangkat" class="flex-1 border p-3 rounded-xl outline-none bg-white focus:ring-2 focus:ring-blue-500">
                 <option value="" disabled>Pilih Pangkat</option>
-                <option v-for="item in daftarPangkatGolru" :key="item.pangkat" :value="item.pangkat">
-                  {{ item.pangkat }}
-                </option>
+                <option v-for="item in daftarPangkatGolru" :key="item.pangkat" :value="item.pangkat">{{ item.pangkat }}</option>
               </select>
               <input v-model="formPegawai.golru" readonly class="w-24 border p-3 rounded-xl outline-none bg-gray-50 text-gray-500 text-center font-bold" placeholder="Golru" />
             </div>
           </div>
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-gray-600 uppercase">TMT Pangkat</label>
-            <input v-model="formPegawai.tmt_pangkat" type="date" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-gray-600 uppercase">Jabatan Saat Ini</label>
-            <input v-model="formPegawai.jabatan" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
+          <div class="space-y-1"><label class="text-xs font-bold text-gray-600 uppercase">TMT Pangkat</label><input v-model="formPegawai.tmt_pangkat" type="date" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /></div>
+          <div class="space-y-1"><label class="text-xs font-bold text-gray-600 uppercase">Jabatan Saat Ini</label><input v-model="formPegawai.jabatan" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /></div>
           <div class="space-y-1">
             <label class="text-xs font-bold text-gray-600 uppercase">Jenjang Jabatan</label>
-            <select 
-              v-model="formPegawai.jenjang_jabatan" 
-              class="w-full border p-3 rounded-xl outline-none bg-white focus:ring-2 focus:ring-blue-500"
-            >
+            <select v-model="formPegawai.jenjang_jabatan" class="w-full border p-3 rounded-xl outline-none bg-white focus:ring-2 focus:ring-blue-500">
               <option value="" disabled>Pilih Jenjang Jabatan</option>
-              <option v-for="jenjang in daftarJenjangJabatan" :key="jenjang" :value="jenjang">
-                {{ jenjang }}
-              </option>
+              <option v-for="jenjang in daftarJenjangJabatan" :key="jenjang" :value="jenjang">{{ jenjang }}</option>
             </select>
           </div>
           <div class="space-y-1">
             <label class="text-xs font-bold text-gray-600 uppercase">Unit Kerja</label>
             <select v-model="formPegawai.unit_kerja" class="w-full border p-3 rounded-xl outline-none bg-white focus:ring-2 focus:ring-blue-500">
               <option value="" disabled>Pilih Unit Kerja</option>
-              <option v-for="unit in daftarUnitKerja" :key="unit" :value="unit">
-                {{ unit }}
-              </option>
+              <option v-for="unit in daftarUnitKerja" :key="unit" :value="unit">{{ unit }}</option>
             </select>
           </div>
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-gray-600 uppercase">Instansi</label>
-            <input v-model="formPegawai.instansi" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-400 bg-gray-50" readonly />
-          </div>
+          <div class="space-y-1"><label class="text-xs font-bold text-gray-600 uppercase">Instansi</label><input v-model="formPegawai.instansi" class="w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-400 bg-gray-50" readonly /></div>
         </div>
 
         <div class="p-8 bg-gray-50 border-t flex justify-end gap-4 rounded-b-3xl">
           <button @click="showModal = false" class="px-6 py-3 text-gray-500 font-bold hover:bg-gray-200 rounded-xl transition">Batal</button>
-          <button 
-            @click="savePegawai" 
-            :disabled="!isFormValid"
-            :class="!isFormValid ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-800 shadow-blue-200'"
-            class="px-10 py-3 text-white rounded-xl font-bold shadow-lg transition"
-          >
+          <button @click="savePegawai" :disabled="!isFormValid" :class="!isFormValid ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-800 shadow-blue-200'" class="px-10 py-3 text-white rounded-xl font-bold shadow-lg transition">
             {{ isEditing ? 'Simpan Perubahan' : 'Simpan Data Pegawai' }}
           </button>
         </div>

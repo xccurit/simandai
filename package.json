@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@nuxt/icon": "^2.2.1",
     "@pinia/nuxt": "^0.11.3",
     "html2pdf.js": "^0.14.0",
     "nuxt": "^4.3.1",

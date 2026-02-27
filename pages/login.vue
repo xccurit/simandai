@@ -22,11 +22,71 @@ const userSesi = useCookie('userProfile', {
 // DATABASE USER DUMMY (Sesuai Arahan Kepala Umum)
 // Password Semuanya: 12345
 // =========================================================
+// =========================================================
+// DATABASE USER DUMMY (Sesuai Arahan Kepala Umum)
+// Password Semuanya: 12345
+// Akan diganti dengan Fetch API saat backend siap
+// =========================================================
 const dataUser = [
+  // --- TINGKAT PROVINSI ---
   { nip: 'admin', pass: '12345', nama: 'Bapak Kabag Umum', role: 'Admin', unit_kerja: 'BPS Provinsi Kalimantan Tengah' },
   { nip: 'spvprov', pass: '12345', nama: 'Ibu SDM Prov', role: 'Supervisor Prov', unit_kerja: 'BPS Provinsi Kalimantan Tengah' },
-  { nip: 'spvkab', pass: '12345', nama: 'Ketua Tim Kapuas', role: 'Supervisor Kabko', unit_kerja: 'BPS Kab. Kapuas' },
-  { nip: 'operator', pass: '12345', nama: 'Staf Entri Kapuas', role: 'Operator', unit_kerja: 'BPS Kab. Kapuas' },
+
+  // --- 1. KOTA PALANGKA RAYA ---
+  { nip: 'spv_palangkaraya', pass: '12345', nama: 'Ketua Tim Palangka Raya', role: 'Supervisor Kabko', unit_kerja: 'BPS Kota Palangka Raya' },
+  { nip: 'op_palangkaraya', pass: '12345', nama: 'Operator Palangka Raya', role: 'Operator', unit_kerja: 'BPS Kota Palangka Raya' },
+
+  // --- 2. KAB. KAPUAS ---
+  { nip: 'spv_kapuas', pass: '12345', nama: 'Ketua Tim Kapuas', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Kapuas' },
+  { nip: 'op_kapuas', pass: '12345', nama: 'Operator Kapuas', role: 'Operator', unit_kerja: 'BPS Kabupaten Kapuas' },
+
+  // --- 3. KAB. KATINGAN ---
+  { nip: 'spv_katingan', pass: '12345', nama: 'Ketua Tim Katingan', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Katingan' },
+  { nip: 'op_katingan', pass: '12345', nama: 'Operator Katingan', role: 'Operator', unit_kerja: 'BPS Kabupaten Katingan' },
+
+  // --- 4. KAB. KOTAWARINGIN TIMUR ---
+  { nip: 'spv_kotim', pass: '12345', nama: 'Ketua Tim Kotim', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Kotawaringin Timur' },
+  { nip: 'op_kotim', pass: '12345', nama: 'Operator Kotim', role: 'Operator', unit_kerja: 'BPS Kabupaten Kotawaringin Timur' },
+
+  // --- 5. KAB. KOTAWARINGIN BARAT ---
+  { nip: 'spv_kobar', pass: '12345', nama: 'Ketua Tim Kobar', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Kotawaringin Barat' },
+  { nip: 'op_kobar', pass: '12345', nama: 'Operator Kobar', role: 'Operator', unit_kerja: 'BPS Kabupaten Kotawaringin Barat' },
+
+  // --- 6. KAB. BARITO SELATAN ---
+  { nip: 'spv_barsel', pass: '12345', nama: 'Ketua Tim Barsel', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Barito Selatan' },
+  { nip: 'op_barsel', pass: '12345', nama: 'Operator Barsel', role: 'Operator', unit_kerja: 'BPS Kabupaten Barito Selatan' },
+
+  // --- 7. KAB. BARITO UTARA ---
+  { nip: 'spv_barut', pass: '12345', nama: 'Ketua Tim Barut', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Barito Utara' },
+  { nip: 'op_barut', pass: '12345', nama: 'Operator Barut', role: 'Operator', unit_kerja: 'BPS Kabupaten Barito Utara' },
+
+  // --- 8. KAB. BARITO TIMUR ---
+  { nip: 'spv_bartim', pass: '12345', nama: 'Ketua Tim Bartim', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Barito Timur' },
+  { nip: 'op_bartim', pass: '12345', nama: 'Operator Bartim', role: 'Operator', unit_kerja: 'BPS Kabupaten Barito Timur' },
+
+  // --- 9. KAB. GUNUNG MAS ---
+  { nip: 'spv_gumas', pass: '12345', nama: 'Ketua Tim Gumas', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Gunung Mas' },
+  { nip: 'op_gumas', pass: '12345', nama: 'Operator Gumas', role: 'Operator', unit_kerja: 'BPS Kabupaten Gunung Mas' },
+
+  // --- 10. KAB. PULANG PISAU ---
+  { nip: 'spv_pulpis', pass: '12345', nama: 'Ketua Tim Pulpis', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Pulang Pisau' },
+  { nip: 'op_pulpis', pass: '12345', nama: 'Operator Pulpis', role: 'Operator', unit_kerja: 'BPS Kabupaten Pulang Pisau' },
+
+  // --- 11. KAB. SERUYAN ---
+  { nip: 'spv_seruyan', pass: '12345', nama: 'Ketua Tim Seruyan', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Seruyan' },
+  { nip: 'op_seruyan', pass: '12345', nama: 'Operator Seruyan', role: 'Operator', unit_kerja: 'BPS Kabupaten Seruyan' },
+
+  // --- 12. KAB. SUKAMARA ---
+  { nip: 'spv_sukamara', pass: '12345', nama: 'Ketua Tim Sukamara', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Sukamara' },
+  { nip: 'op_sukamara', pass: '12345', nama: 'Operator Sukamara', role: 'Operator', unit_kerja: 'BPS Kabupaten Sukamara' },
+
+  // --- 13. KAB. LAMANDAU ---
+  { nip: 'spv_lamandau', pass: '12345', nama: 'Ketua Tim Lamandau', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Lamandau' },
+  { nip: 'op_lamandau', pass: '12345', nama: 'Operator Lamandau', role: 'Operator', unit_kerja: 'BPS Kabupaten Lamandau' },
+
+  // --- 14. KAB. MURUNG RAYA ---
+  { nip: 'spv_mura', pass: '12345', nama: 'Ketua Tim Mura', role: 'Supervisor Kabko', unit_kerja: 'BPS Kabupaten Murung Raya' },
+  { nip: 'op_mura', pass: '12345', nama: 'Operator Mura', role: 'Operator', unit_kerja: 'BPS Kabupaten Murung Raya' },
 ]
 
 const handleLogin = () => {
@@ -118,9 +178,9 @@ const handleLogin = () => {
         <strong>📝 Info Testing Role (Pass: 12345)</strong><br>
         • Admin: <code>admin</code><br>
         • Spv Prov: <code>spvprov</code><br>
-        • Spv Kabko: <code>spvkab</code><br>
-        • Operator: <code>operator</code><br>
-        • Pegawai: <code>199999999999999999</code>
+        • Spv Kabko: <code>spv_kapuas</code>, <code>spv_kotim</code>, <code>spv_katingan</code>, dll.<br>
+        • Operator: <code>op_kapuas</code>, <code>op_kotim</code>, <code>op_katingan</code>, dll.<br>
+        • Pegawai: Ketik NIP pegawai yang bersangkutan.
       </div>
     </div>
   </div>

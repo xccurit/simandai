@@ -83,21 +83,37 @@ const isPegawai = computed(() => userProfile.value.role === 'Pegawai')
       
       <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
         <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Menu Utama</p>
-        <NuxtLink @click="isSidebarOpen = false" to="/" class="menu-item">Dashboard</NuxtLink>
-        <NuxtLink @click="isSidebarOpen = false" to="/data-pegawai" class="menu-item">Data Pegawai</NuxtLink>
+        <NuxtLink @click="isSidebarOpen = false" to="/" class="menu-item">
+          <Icon name="heroicons:home" class="w-5 h-5 mr-3 opacity-70" /> Dashboard
+        </NuxtLink>
+        <NuxtLink @click="isSidebarOpen = false" to="/data-pegawai" class="menu-item">
+          <Icon name="heroicons:users" class="w-5 h-5 mr-3 opacity-70" /> Data Pegawai
+        </NuxtLink>
 
         <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Fungsional & Karir</p>
-        <NuxtLink @click="isSidebarOpen = false" to="/angka-kredit" class="menu-item">Angka Kredit</NuxtLink>
-        <NuxtLink @click="isSidebarOpen = false" to="/usulan-kenaikan" class="menu-item">Usulan Kenaikan</NuxtLink>
+        <NuxtLink @click="isSidebarOpen = false" to="/angka-kredit" class="menu-item">
+          <Icon name="heroicons:calculator" class="w-5 h-5 mr-3 opacity-70" /> Angka Kredit
+        </NuxtLink>
+        <NuxtLink @click="isSidebarOpen = false" to="/usulan-kenaikan" class="menu-item">
+          <Icon name="heroicons:arrow-trending-up" class="w-5 h-5 mr-3 opacity-70" /> Usulan Kenaikan
+        </NuxtLink>
 
         <template v-if="!isPegawai">
           <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Organisasi & Kompetensi</p>
-          <NuxtLink @click="isSidebarOpen = false" to="/analisis-beban-kerja" class="menu-item">Analisis Beban Kerja</NuxtLink>
-          <NuxtLink @click="isSidebarOpen = false" to="/kompetensi/jabatan" class="menu-item ml-2 text-sm">Kompetensi Jabatan</NuxtLink>
-          <NuxtLink @click="isSidebarOpen = false" to="/kompetensi/layanan" class="menu-item ml-2 text-sm">Kompetensi Layanan</NuxtLink>
+          <NuxtLink @click="isSidebarOpen = false" to="/analisis-beban-kerja" class="menu-item">
+            <Icon name="heroicons:briefcase" class="w-5 h-5 mr-3 opacity-70" /> Analisis Beban Kerja
+          </NuxtLink>
+          <NuxtLink @click="isSidebarOpen = false" to="/kompetensi/jabatan" class="menu-item ml-2 text-sm">
+            <Icon name="heroicons:academic-cap" class="w-4 h-4 mr-3 opacity-60" /> Kompetensi Jabatan
+          </NuxtLink>
+          <NuxtLink @click="isSidebarOpen = false" to="/kompetensi/layanan" class="menu-item ml-2 text-sm">
+            <Icon name="heroicons:clipboard-document-check" class="w-4 h-4 mr-3 opacity-60" /> Kompetensi Layanan
+          </NuxtLink>
 
           <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Lainnya</p>
-          <NuxtLink @click="isSidebarOpen = false" to="/reward-punishment" class="menu-item">Reward & Punishment</NuxtLink>
+          <NuxtLink @click="isSidebarOpen = false" to="/reward-punishment" class="menu-item">
+            <Icon name="heroicons:scale" class="w-5 h-5 mr-3 opacity-70" /> Reward & Punishment
+          </NuxtLink>
         </template>
       </nav>
 
