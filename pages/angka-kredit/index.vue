@@ -374,10 +374,12 @@ const formStatus = ref({ status: '', catatan: '' })
 
 // Dictionary Keterangan Dapat Dipertimbangkan PAK
 const kamusRekomendasi = [
-  "Dapat dipertimbangkan untuk dinaikkan pangkatnya setingkat lebih tinggi.",
-  "Dapat dipertimbangkan untuk diangkat dalam jabatan fungsional setingkat lebih tinggi.",
-  "Dapat dipertimbangkan untuk mengikuti Uji Kompetensi Kenaikan Jenjang.",
-  "Belum dapat dipertimbangkan untuk kenaikan pangkat maupun jabatan."
+  "Dapat di pertimbangkan untuk kenaikan pangkat setingkat lebih tinggi.",
+  "Dapat di pertimbangkan untuk kenaikan jabatan setingkat lebih tinggi.",
+  "Dapat di pertimbangkan untuk kenaikan jabatan dan pangkat setingkat lebih tinggi.",
+  "Belum di pertimbangkan untuk kenaikan pangkat setingkat lebih tinggi.",
+  "Belum di pertimbangkan untuk kenaikan jabatan setingkat lebih tinggi.",
+  "Belum di pertimbangkan untuk kenaikan jabatan dan pangkat setingkat lebih tinggi.",
 ]
 
 // State Form Cetak Khusus
@@ -387,16 +389,49 @@ const formCetak = ref({
   ditetapkan_di: '',
   tanggal_ttd: formatTanggalSurat(new Date()),
   nomor_surat: '',
-  rekomendasi_pak: kamusRekomendasi[0]
+  rekomendasi_pak: kamusRekomendasi[0],
+  nomor_bagian_satker: '6200', // Default
+  nomor_bagian_urut: '',       // Diisi manual (xxx)
+  nomor_bagian_jabatan: 'PK',  // Kode Jabatan
+  tahun_surat: new Date().getFullYear()
 })
 
 const openPrintModal = (jenis, item = null) => {
+  // 1. Reset & Setup data dasar
   formCetak.value.jenis = jenis;
   formCetak.value.item_id = item ? item.id : null;
-  formCetak.value.ditetapkan_di = getIbukota(selectedPegawai.value.unit_kerja); // Deteksi Ibukota Otomatis
+  formCetak.value.ditetapkan_di = getIbukota(selectedPegawai.value.unit_kerja);
   formCetak.value.tanggal_ttd = formatTanggalSurat(new Date());
-  formCetak.value.nomor_surat = '';
   formCetak.value.rekomendasi_pak = kamusRekomendasi[0];
+  formCetak.value.tahun_surat = new Date().getFullYear();
+
+  // 1. Deteksi Kode Satker dari Unit Kerja Pegawai
+  const satker = store.kamusKodeSatker.find(s => {
+    // Kita bersihkan dulu teksnya agar pencocokan lebih akurat
+    const unitKerja = selectedPegawai.value.unit_kerja.toLowerCase();
+    const namaKamus = s.nama.toLowerCase()
+      .replace('kab. ', 'kabupaten ') // Ubah 'kab.' jadi 'kabupaten' agar cocok
+      .replace('kota ', '');          // Hapus kata 'kota' untuk pencocokan simpel
+
+    // Ambil kata kunci inti (misal: "lamandau" atau "palangka raya")
+    const keyword = s.nama.toLowerCase().replace('kab. ', '').replace('kota ', '').trim();
+    
+    return unitKerja.includes(keyword);
+  });
+
+  formCetak.value.nomor_bagian_satker = satker ? satker.kode : '6200';
+
+  // 3. Deteksi Kode Jabatan Otomatis
+  // Pastikan membandingkan dengan nama di kamus (misal: "Pranata Komputer")
+  const jabatan = store.kamusKodeJabatan.find(j => 
+    selectedPegawai.value.jabatan.toLowerCase().includes(j.nama.toLowerCase())
+  );
+  formCetak.value.nomor_bagian_jabatan = jabatan ? jabatan.kode : 'XX';
+  
+  // 4. Reset nomor urut agar kosong setiap buka modal baru
+  formCetak.value.nomor_bagian_urut = ''; 
+
+  // 5. Terakhir baru munculkan Modal (agar data sudah terisi saat muncul)
   showPrintSetupModal.value = true;
 }
 
@@ -438,6 +473,7 @@ const cetakLaporanTahunan = (item) => {
 }
 
 const siapkanDataAkumulasi = () => {
+  const fullNomor = `${formCetak.value.nomor_bagian_satker}.${formCetak.value.nomor_bagian_urut || 'xxx'}/Konv/${formCetak.value.nomor_bagian_jabatan}/${formCetak.value.tahun_surat}`;
   const riwayatLengkap = riwayatCetakAscending.value.map(item => {
      const jabInfo = kamusJabatan.find(j => item.jabatan.toLowerCase().includes(j.keyword))
      const predInfo = kamusPredikat.find(p => p.nama === item.predikat)
@@ -472,7 +508,7 @@ const siapkanDataAkumulasi = () => {
     masa_penilaian: masaPenilaian,
     ditetapkan_di: formCetak.value.ditetapkan_di,
     tanggal_ttd: formCetak.value.tanggal_ttd,
-    nomor_surat: formCetak.value.nomor_surat,
+    nomor_surat: fullNomor,
     rekomendasi_pak: formCetak.value.rekomendasi_pak
   }
 }
@@ -659,7 +695,28 @@ onMounted(() => {
           
           <div v-if="formCetak.jenis === 'pak'">
             <label class="block text-sm font-bold text-gray-700 mb-1">Nomor Surat PAK</label>
-            <input v-model="formCetak.nomor_surat" type="text" class="w-full border rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-bps-blue bg-white" placeholder="Ketik nomor surat manual...">
+            <div class="flex items-center gap-1 bg-gray-50 p-2 rounded-lg border">
+              <select v-model="formCetak.nomor_bagian_satker" class="bg-white border rounded px-1 py-1 outline-none">
+                <option v-for="s in store.kamusKodeSatker" :key="s.kode" :value="s.kode">{{ s.kode }}</option>
+              </select>
+              
+              <span class="font-bold">.</span>
+              
+              <input v-model="formCetak.nomor_bagian_urut" type="text" 
+                    class="w-16 border rounded px-2 py-1 text-center outline-none focus:ring-1 focus:ring-bps-blue" 
+                    placeholder="xxx">
+              
+              <span class="text-gray-500">/Konv/</span>
+              
+              <select v-model="formCetak.nomor_bagian_jabatan" class="bg-white border rounded px-1 py-1 outline-none">
+                <option v-for="j in store.kamusKodeJabatan" :key="j.kode" :value="j.kode">{{ j.kode }}</option>
+              </select>
+              
+              <span class="text-gray-500">/</span>
+              
+              <input v-model="formCetak.tahun_surat" type="number" class="w-20 border rounded px-1 py-1 text-center bg-transparent">
+            </div>
+            <p class="text-[10px] text-gray-500 mt-1 italic">Format Otomatis: {{ formCetak.nomor_bagian_satker }}.{{ formCetak.nomor_bagian_urut || 'xxx' }}/Konv/{{ formCetak.nomor_bagian_jabatan }}/{{ formCetak.tahun_surat }}</p>
           </div>
 
           <div class="grid grid-cols-2 gap-4">
@@ -992,7 +1049,7 @@ onMounted(() => {
 
           </div>
            <div class="text-center font-bold text-[13px] underline uppercase mb-1 mt-2">PENETAPAN ANGKA KREDIT</div>
-           <div class="text-center mb-3 font-semibold tracking-wider text-[11px]">
+           <div class="text-center mb-3 tracking-wider text-[11px]">
               NOMOR: {{ printData.nomor_surat || '.................................' }}
            </div>
            

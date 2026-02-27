@@ -67,11 +67,18 @@ interface RiwayatAK {
   manual_koef?: string;
 }
 
+interface KodeReferensi {
+  kode: string;
+  nama: string;
+}
+
 interface PegawaiState {
   pegawaiList: Pegawai[]
   riwayatList: RiwayatAK[]
   kamusPangkat: KamusPangkat[]
   kamusJabatan: KamusJabatan[]
+  kamusKodeSatker: KodeReferensi[]
+  kamusKodeJabatan: KodeReferensi[]
 }
 
 export const usePegawaiStore = defineStore('pegawai', {
@@ -100,6 +107,39 @@ export const usePegawaiStore = defineStore('pegawai', {
       { keyword: 'penyelia', nama: 'Penyelia', koef_tahun: 25, target_jenjang: null, next: null },
       { keyword: 'mahir', nama: 'Mahir', koef_tahun: 12.5, target_jenjang: 100, next: 'Penyelia' },
       { keyword: 'terampil', nama: 'Terampil', koef_tahun: 5, target_jenjang: 60, next: 'Mahir' },
+    ],
+    // Tambahkan di dalam state () => ({ ... })
+    kamusKodeSatker: [
+      { kode: '6201', nama: 'Kab. Kotawaringin Barat' },
+      { kode: '6202', nama: 'Kab. Kotawaringin Timur' },
+      { kode: '6203', nama: 'Kab. Kapuas' },
+      { kode: '6204', nama: 'Kab. Barito Selatan' },
+      { kode: '6205', nama: 'Kab. Barito Utara' },
+      { kode: '6209', nama: 'Kab. Katingan' },
+      { kode: '6208', nama: 'Kab. Seruyan' },
+      { kode: '6206', nama: 'Kab. Sukamara' },
+      { kode: '6207', nama: 'Kab. Lamandau' },
+      { kode: '6211', nama: 'Kab. Gunung Mas' },
+      { kode: '6210', nama: 'Kab. Pulang Pisau' },
+      { kode: '6213', nama: 'Kab. Murung Raya' },
+      { kode: '6212', nama: 'Kab. Barito Timur' },
+      { kode: '6271', nama: 'Kota Palangka Raya' },
+    ],
+    kamusKodeJabatan: [
+      { kode: 'ST', nama: 'Statistisi' },
+      { kode: 'PK', nama: 'Pranata Komputer' },
+      { kode: 'JFK', nama: 'JF Kepegawaian' },
+      { kode: 'JFAA', nama: 'Analis Anggaran' },
+      { kode: 'JFP', nama: 'Perencana' },
+      { kode: 'AD', nama: 'Auditor' },
+      { kode: 'PKA', nama: 'Pranata Keuangan APBN' },
+      { kode: 'APK', nama: 'APK APBN' },
+      { kode: 'JFPH', nama: 'Pranata Humas' },
+      { kode: 'PBJ', nama: 'Pengelola Barang dan Jasa' },
+      { kode: 'PLB', nama: 'Penata Laksana Barang' },
+      { kode: 'JFH', nama: 'Penyuluh Hukum' },
+      { kode: 'JFAH', nama: 'Analis Hukum' },
+      { kode: 'JFA', nama: 'Arsiparis' },
     ],
     pegawaiList: [],
     riwayatList: []
