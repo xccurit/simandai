@@ -1,11 +1,26 @@
 <script setup lang="ts">
 import { computed, ref, reactive, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router' // <-- TAMBAHKAN INI
 import { usePegawaiStore, type Pegawai } from '~/stores/usePegawaiStore'
+import { useCookie } from '#app'
 
 const store = usePegawaiStore()
+const router = useRouter() // <-- TAMBAHKAN INI
+const userSesi = useCookie('userProfile', { default: () => ({ role: 'Admin', unit_kerja: '', nip: '' }) })
 
 onMounted(() => {
   store.loadFromStorage()
+  
+  // 🚀 AUTO-REDIRECT KHUSUS PEGAWAI
+  if (userSesi.value.role === 'Pegawai') {
+    // Cari ID pegawai tersebut berdasarkan NIP di cookie
+    const myData = store.pegawaiList.find(p => p.nip_baru === userSesi.value.nip || p.nip_lama === userSesi.value.nip)
+    
+    // Jika ketemu, langsung lempar ke halaman detail profilnya
+    if (myData) {
+      router.replace(`/data-pegawai/${myData.id}`)
+    }
+  }
 })
 
 /* ================= DATA MASTER ================= */
@@ -50,6 +65,30 @@ const daftarJenjangJabatan = [
   'Ahli Madya',
   'Ahli Utama'
 ]
+
+/* ================= FILTER BERDASARKAN ROLE ================= */
+const normalizeUnitKerja = (str: string) => {
+  if (!str) return '';
+  return str.toLowerCase().replace(/bps|kabupaten|kab\.|kota|provinsi|prov\./gi, '').trim();
+}
+
+// 1. Filter Data Berdasarkan Role & Wilayah Terlebih Dahulu
+const roleFilteredPegawai = computed(() => {
+  const list = store.pegawaiList;
+  const role = userSesi.value.role;
+  
+  if (role === 'Pegawai') {
+    // 🚀 PERBAIKAN: Gunakan nip_lama, bukan nip
+    return list.filter(p => p.nip_baru === userSesi.value.nip || p.nip_lama === userSesi.value.nip);
+  } else if (role === 'Supervisor Kabko' || role === 'Operator') {
+    const uKerjaSesi = normalizeUnitKerja(userSesi.value.unit_kerja);
+    return list.filter(p => {
+       const uKerjaPegawai = normalizeUnitKerja(p.unit_kerja);
+       return uKerjaPegawai.includes(uKerjaSesi) || uKerjaSesi.includes(uKerjaPegawai);
+    });
+  }
+  return list;
+})
 
 /* ================= FILTER & STATS ================= */
 const searchQuery = ref('')

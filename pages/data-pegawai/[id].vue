@@ -2,10 +2,14 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePegawaiStore } from '~/stores/usePegawaiStore'
+import { useCookie } from '#app' // <-- TAMBAHKAN INI
 
 const store = usePegawaiStore()
 const route = useRoute()
 const router = useRouter()
+
+// 🚀 TANGKAP ROLE USER SAAT INI
+const userSesi = useCookie('userProfile', { default: () => ({ role: 'Admin', unit_kerja: '', nip: '' }) })
 
 const pegawaiId = Number(route.params.id)
 
@@ -53,7 +57,7 @@ const riwayatAKPegawai = computed(() =>
           </div>
         </div>
       </div>
-      <button @click="router.back()" class="bg-gray-100 text-gray-600 px-6 py-2 rounded-xl hover:bg-gray-200 font-bold transition"> 
+      <button v-if="userSesi.role !== 'Pegawai'" @click="router.back()" class="bg-gray-100 text-gray-600 px-6 py-2 rounded-xl hover:bg-gray-200 font-bold transition"> 
         ← Kembali 
       </button>
     </div>

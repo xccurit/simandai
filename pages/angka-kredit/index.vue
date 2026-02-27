@@ -110,14 +110,27 @@ const kamusPredikat = [
 const store = usePegawaiStore()
 const userSesi = useCookie('userProfile', { default: () => ({ role: 'Admin', unit_kerja: '', nip: '' }) })
 
+// Fungsi pintar untuk menyamakan format "Kab.", "Kabupaten", "Kota", dll
+const normalizeUnitKerja = (str) => {
+  if (!str) return '';
+  return str.toLowerCase().replace(/bps|kabupaten|kab\.|kota|provinsi|prov\./gi, '').trim();
+}
+
 const basePegawaiList = computed(() => {
-  let list = store.pegawaiList
-  if (userSesi.value.role === 'Pegawai') {
-    list = list.filter(p => p.nip === userSesi.value.nip)
-  } else if (userSesi.value.role === 'Supervisor Kabko' || userSesi.value.role === 'Operator') {
-    list = list.filter(p => p.unit_kerja === userSesi.value.unit_kerja)
+  const list = store.pegawaiList;
+  const role = userSesi.value.role;
+  
+  if (role === 'Pegawai') {
+    return list.filter(p => p.nip_baru === userSesi.value.nip || p.nip_lama === userSesi.value.nip);
+  } else if (role === 'Supervisor Kabko' || role === 'Operator') {
+    // Gunakan fungsi pembersih teks agar pencocokan wilayah 100% akurat
+    const uKerjaSesi = normalizeUnitKerja(userSesi.value.unit_kerja);
+    return list.filter(p => {
+       const uKerjaPegawai = normalizeUnitKerja(p.unit_kerja);
+       return uKerjaPegawai.includes(uKerjaSesi) || uKerjaSesi.includes(uKerjaPegawai);
+    });
   }
-  return list
+  return list;
 })
 
 // =====================================================================
@@ -194,7 +207,7 @@ const totalAkumulasi = computed(() => {
 const analisisKelayakan = computed(() => {
   if (!selectedPegawai.value) return { eligible: false }
   
-  // PERBAIKAN 1: Tidak pakai regex, langsung baca golru dari database tim IT
+  // Baca golru dari database
   const golru = selectedPegawai.value.golru || ''
   const syarat = kamusPangkat.find(p => p.golru === golru)
   
@@ -203,23 +216,32 @@ const analisisKelayakan = computed(() => {
   }
   
   const totalAK = parseFloat(selectedPegawai.value.total_ak_kumulatif) || 0
-  const targetPangkat = syarat.ak_kp || 0
-  let kurangPangkat = targetPangkat - totalAK
   
+  // 1. Hitung Selisih Pangkat (Total AK - Target Pangkat)
+  const targetPangkat = syarat.ak_kp || 0
+  const selisihPangkat = totalAK - targetPangkat
+  // Otomatis tambah '+' jika lebih dari 0, jika minus akan otomatis ada '-' bawaan angkanya
+  const formatPangkat = selisihPangkat > 0 ? `+${selisihPangkat.toFixed(3)}` : selisihPangkat.toFixed(3)
+  
+  // 2. Hitung Selisih Jenjang (Total AK - Target Jenjang)
   const jabatanLengkap = `${selectedPegawai.value.jabatan || ''} ${selectedPegawai.value.jenjang_jabatan || ''}`.toLowerCase()
   const jabInfo = kamusJabatan.find(j => jabatanLengkap.includes(j.keyword))
-  const targetJenjang = jabInfo ? jabInfo.target_jenjang : 0
-  let kurangJenjang = targetJenjang ? (targetJenjang - totalAK) : 0
   
-  // PERBAIKAN 2: Mengembalikan nilai AK target dan kurang ke UI (agar surat tidak kosong)
+  const targetJenjang = jabInfo ? jabInfo.target_jenjang : 0
+  let formatJenjang = '-'
+  if (targetJenjang) {
+     const selisihJenjang = totalAK - targetJenjang
+     formatJenjang = selisihJenjang > 0 ? `+${selisihJenjang.toFixed(3)}` : selisihJenjang.toFixed(3)
+  }
+  
   return { 
-    eligible: kurangPangkat <= 0, 
+    eligible: selisihPangkat >= 0, 
     targetPangkat: targetPangkat, 
-    kurangPangkat: kurangPangkat > 0 ? kurangPangkat.toFixed(3) : '0', 
+    kurangPangkat: formatPangkat, 
     targetJenjang: targetJenjang || '-', 
-    kurangJenjang: kurangJenjang > 0 ? kurangJenjang.toFixed(3) : '0', 
-    pesan: kurangPangkat <= 0 ? 'MEMENUHI SYARAT' : 'BELUM MEMENUHI', 
-    warna: kurangPangkat <= 0 ? 'bg-green-100 text-green-700 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200' 
+    kurangJenjang: formatJenjang, 
+    pesan: selisihPangkat >= 0 ? 'MEMENUHI SYARAT' : 'BELUM MEMENUHI', 
+    warna: selisihPangkat >= 0 ? 'bg-green-100 text-green-700 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200' 
   }
 })
 
@@ -248,8 +270,12 @@ const formKalkulasi = ref({
 
 // 🚀 TAMBAHKAN KODE INI: Pengaman Otomatis
 watch(() => formKalkulasi.value.tahun, (newYear) => {
-  // Jika tahun diubah BUKAN 2022, pastikan sumber kembali ke Konversi SKP
-  if (newYear !== 2022 && formKalkulasi.value.sumber === 'Migrasi Data Lama') {
+  // Jika mengetik 2022, langsung paksa pindah ke Migrasi
+  if (newYear === 2022) {
+    formKalkulasi.value.sumber = 'Migrasi Data Lama'
+  } 
+  // Jika tahun selain 2022, kembalikan ke Konversi
+  else {
     formKalkulasi.value.sumber = 'Konversi SKP'
   }
 })
@@ -647,7 +673,7 @@ onMounted(() => {
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
           <h3 class="font-bold text-gray-800">Rincian Angka Kredit</h3>
-          <button v-if="userSesi.role !== 'Pegawai'" @click="bukaModalTambah" class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 px-4 rounded-lg">+ Kalkulasi SKP Baru</button>
+          <button v-if="['Admin', 'Supervisor Prov', 'Operator'].includes(userSesi.role)" @click="bukaModalTambah" class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 px-4 rounded-lg">+ Kalkulasi SKP Baru</button>
         </div>
         
         <div class="overflow-x-auto">
@@ -670,7 +696,8 @@ onMounted(() => {
                 <td class="px-6 py-4 text-right font-bold text-bps-blue text-base">+{{ parseFloat(item.ak_didapat).toFixed(3) }}</td>
                 <td class="px-6 py-4 text-center flex items-center justify-center gap-2">
                    <button v-if="item.sumber !== 'Migrasi Data Lama' && ['Admin', 'Supervisor Prov', 'Supervisor Kabko'].includes(userSesi.role)" @click="openPrintModal('konversi', item)" class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded hover:bg-blue-50 border text-xs font-bold">📄 PDF Konversi</button>
-                   <div v-if="userSesi.role !== 'Pegawai'" class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                   
+                   <div v-if="['Admin', 'Supervisor Prov', 'Operator'].includes(userSesi.role)" class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button @click="bukaModalEdit(item)" class="bg-blue-100 text-blue-600 p-1.5 rounded" title="Edit">✏️</button>
                       <button @click="hapusItem(item.id)" class="bg-red-100 text-red-600 p-1.5 rounded" title="Hapus">🗑️</button>
                    </div>
@@ -759,7 +786,7 @@ onMounted(() => {
              <div>
                 <label class="block text-xs font-bold mb-1">Sumber Dokumen</label>
                 <select v-model="formKalkulasi.sumber" class="w-full p-2 border rounded bg-white outline-none focus:border-bps-blue">
-                   <option value="Konversi SKP">Konversi SKP</option>
+                   <option value="Konversi SKP" :disabled="formKalkulasi.tahun === 2022" :class="{'text-gray-400': formKalkulasi.tahun === 2022}">Konversi SKP</option>
                    <option value="Migrasi Data Lama" :disabled="formKalkulasi.tahun !== 2022" :class="{'text-gray-400': formKalkulasi.tahun !== 2022}">
                      Migrasi / Integrasi
                    </option>
@@ -799,18 +826,11 @@ onMounted(() => {
 
           <template v-else>
             <div class="p-4 bg-gray-50 border border-gray-300 rounded-lg space-y-4">
-               <p class="text-xs font-bold text-gray-500 uppercase border-b pb-1">Input Data Manual Format 2022 (Untuk PDF)</p>
+               <p class="text-xs font-bold text-gray-500 uppercase border-b pb-1">Input Data Integrasi 2022</p>
                
-               <div class="grid grid-cols-2 gap-4">
-                  <div><label class="block text-xs font-bold mb-1">Periodik (Bulan)</label><input v-model="formKalkulasi.manual_bulan" class="w-full p-2 border rounded outline-none focus:border-bps-blue" placeholder="Contoh: 12 Bulan"></div>
-                  <div><label class="block text-xs font-bold mb-1">Predikat</label><input v-model="formKalkulasi.predikat" class="w-full p-2 border rounded outline-none focus:border-bps-blue" placeholder="Contoh: Baik"></div>
-                  <div><label class="block text-xs font-bold mb-1">Prosentase (%)</label><input v-model="formKalkulasi.manual_persen" class="w-full p-2 border rounded outline-none focus:border-bps-blue" placeholder="Contoh: 100%"></div>
-                  <div><label class="block text-xs font-bold mb-1">Koefisien per Tahun</label><input v-model="formKalkulasi.manual_koef" class="w-full p-2 border rounded outline-none focus:border-bps-blue" placeholder="Contoh: 12.5"></div>
-               </div>
-
-               <div class="pt-4 border-t">
-                  <label class="block text-xs font-bold mb-1 text-bps-blue">Angka Kredit Didapat</label>
-                  <input v-model="formKalkulasi.ak_didapat" type="number" step="0.001" class="w-full p-2 border-2 border-bps-blue bg-white rounded outline-none text-xl font-bold" placeholder="Masukkan angka akhir..." />
+               <div class="pt-2">
+                  <label class="block text-xs font-bold mb-1 text-bps-blue">Total Angka Kredit Integrasi Didapat</label>
+                  <input v-model.number="formKalkulasi.ak_didapat" type="number" step="0.001" class="w-full p-2 border-2 border-bps-blue bg-white rounded outline-none text-xl font-bold" placeholder="Masukkan total angka kredit..." />
                </div>
             </div>
           </template>
@@ -1187,7 +1207,7 @@ onMounted(() => {
                  <td colspan="2" style="border: 1px solid black; text-align: center; padding: 3px;">{{ printData.analisis.targetJenjang }}</td>
               </tr>
               <tr>
-                 <td colspan="5" style="border: 1px solid black; padding: 3px 5px; text-align: justify;">Kekurangan Angka Kredit yang harus dicapai untuk kenaikan pangkat</td>
+                 <td colspan="5" style="border: 1px solid black; padding: 3px 5px; text-align: justify;">Kekurangan/Kelebihan Angka Kredit yang harus dicapai untuk kenaikan pangkat</td>
                  
                  <td colspan="2" rowspan="2" style="border: 1px solid black; text-align: center; vertical-align: middle; padding: 3px;">
                     {{ printData.analisis.kurangPangkat }}
@@ -1199,7 +1219,7 @@ onMounted(() => {
               </tr>
               
               <tr>
-                 <td colspan="4" style="border: 1px solid black; padding: 3px 5px; text-align: justify;">Kekurangan Angka Kredit yang harus dicapai untuk Jenjang Jabatan</td>
+                 <td colspan="4" style="border: 1px solid black; padding: 3px 5px; text-align: justify;">Kekurangan/Kelebihan Angka Kredit yang harus dicapai untuk Jenjang Jabatan</td>
               </tr>
 
               <tr>
