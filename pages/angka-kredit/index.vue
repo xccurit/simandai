@@ -981,16 +981,16 @@ onMounted(() => {
 
            <div class="flex items-center border-b-[3px] border-black pb-1 mb-4" style="font-family: 'Roboto', sans-serif;">
   
-  <div class="flex-shrink-0 -ml-12">
-      <img src="/logo-bps-kalteng1.png" alt="Logo BPS" class="-left-2 w-[180px] h-auto" />
-  </div>
-  
-  <div class="flex-1 text-left -ml-10">
-      <h1 class="text-[16pt] font-bold uppercase tracking-wider m-0 leading-tight italic">BADAN PUSAT STATISTIK</h1>
-      <h2 class="text-[16pt] font-bold uppercase tracking-wider m-0 leading-tight italic">{{ formatKopSurat(printData.pegawai.unit_kerja) }}</h2>
-  </div>
+            <div class="flex-shrink-0 -ml-12">
+                <img src="/logo-bps-kalteng1.png" alt="Logo BPS" class="-left-2 w-[180px] h-auto" />
+            </div>
+            
+            <div class="flex-1 text-left -ml-10">
+                <h1 class="text-[16pt] font-bold uppercase tracking-wider m-0 leading-tight italic">BADAN PUSAT STATISTIK</h1>
+                <h2 class="text-[16pt] font-bold uppercase tracking-wider m-0 leading-tight italic">{{ formatKopSurat(printData.pegawai.unit_kerja) }}</h2>
+            </div>
 
-</div>
+          </div>
            <div class="text-center font-bold text-[13px] underline uppercase mb-1 mt-2">PENETAPAN ANGKA KREDIT</div>
            <div class="text-center mb-3 font-semibold tracking-wider text-[11px]">
               NOMOR: {{ printData.nomor_surat || '.................................' }}
@@ -1154,22 +1154,34 @@ onMounted(() => {
              </tbody>
            </table>
 
-           <div class="flex justify-between items-end mt-1 mb-8">
-             <div class="text-[10px]">
-                <p class="font-bold mb-1">ASLI Penetapan Angka Kredit untuk:</p>
-                <p>1. Sdr. {{ printData.pegawai.nama_lengkap || printData.pegawai.nama }}</p>
-                <p>2. Sekretariat Tim Penilai Kinerja Badan Pusat Statistik</p>
-                <p>3. Kepala Biro Sumber Daya Manusia</p>
-             </div>
-             <div class="w-64 text-[11px]">
-               <div class="flex justify-between"><span class="text-left w-28">Ditetapkan di</span><span>: {{ printData.ditetapkan_di }}</span></div>
-               <div class="flex justify-between mb-6"><span class="text-left w-28">Pada tanggal</span><span>: {{ printData.tanggal_ttd }}</span></div>
-               <div class="text-center pr-4">
-                 <p class="mb-14 font-bold">Pejabat yang Berwenang<br>Menetapkan Angka Kredit</p>
-                 <p class="font-bold underline">Agnes Widiastuti</p>
-               </div>
-             </div>
-           </div>
+          <div class="flex justify-between items-start mt-4 mb-8">
+            <div class="flex-1">
+              <div class="text-[10px] mt-6">
+                <p class="mb-0"><b>ASLI </b>Penetapan Angka Kredit untuk:</p>
+                <p>Sdr. {{ printData.pegawai.nama_lengkap || printData.pegawai.nama }}</p>
+              </div>
+
+              <div class="text-[11px] mt-16">
+                <p class="mb-1">TEMBUSAN disampaikan kepada:</p>
+                <p>1. Sekretariat Tim Penilai Kinerja {{ formatUnitKerja(printData.pegawai.unit_kerja) }};</p>
+                <p>2. Kepala Biro Sumber Daya Manusia</p>
+              </div>
+            </div>
+
+            <div class="w-50 text-[11px]">
+              <div class="flex justify-between">
+                <span class="text-left w-28">Ditetapkan di</span>
+                <span>: {{ printData.ditetapkan_di }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-left w-28">Pada tanggal</span>
+                <span>: {{ printData.tanggal_ttd }}</span>
+              </div>
+
+              <div class="text-center -mt-4"> <div class="h-24"></div> <p>Agnes Widiastuti</p>
+              </div>
+            </div>
+          </div>
 
            <div class="w-full border-t border-black pt-2 flex justify-end mt-auto">
               <img src="/balai.png" alt="Balai" class="w-[50px] h-auto" />
