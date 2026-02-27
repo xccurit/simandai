@@ -58,8 +58,8 @@ const isPegawai = computed(() => userProfile.value.role === 'Pegawai')
         </button>
       </div>
       <div class="marquee-container flex-1 h-full flex items-center">
-        <h1 class="marquee-text-slow text-[13px] font-extrabold text-bps-blue tracking-wider uppercase">
-          Sistem Informasi Manajemen Administrasi, Nilai, dan Data Aparatur Terintegrasi (SIMANDAI)
+        <h1 class="marquee-text-slow text-[20px] font-extrabold text-bps-blue tracking-wider uppercase">
+          SISTEM INFORMASI MANAJEMEN DATA PEGAWAI BADAN PUSAT STATISTIK PROVINSI KALIMANTAN TENGAH
         </h1>
       </div>
     </div>
