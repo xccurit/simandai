@@ -8,13 +8,12 @@ const userSesi = useCookie('userProfile', { default: () => ({ role: 'Admin', uni
 const activeTab = ref('kp') 
 
 const basePegawaiList = computed(() => {
-  let list = store.pegawaiList
-  if (userSesi.value.role === 'Pegawai') {
-    list = list.filter(p => p.nip === userSesi.value.nip)
-  } else if (userSesi.value.role === 'Supervisor Kabko' || userSesi.value.role === 'Operator') {
-    list = list.filter(p => p.unit_kerja === userSesi.value.unit_kerja)
-  }
-  return list
+  const list = store.pegawaiList;
+  const role = userSesi.value.role;
+  
+  // 2. Jika Admin, Supervisor Prov, Supervisor Kabko, ATAU Operator
+  // SEMUANYA melihat FULL DATA se-Kalimantan Tengah
+  return list;
 })
 
 const jadwalUkom = useCookie('jadwalUkom', { default: () => '10 - 15 Maret 2026' })

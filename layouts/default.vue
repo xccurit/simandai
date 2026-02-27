@@ -1,19 +1,51 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { useCookie } from '#app'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const router = useRouter()
 const isAuth = useCookie('isLoggedIn')
 
+// 🚀 TANGKAP DATA PROFIL DARI COOKIE
+const userProfile = useCookie('userProfile', { 
+  default: () => ({ nama: 'Guest', role: 'Guest', unit_kerja: '', nip: '' }) 
+})
+
 const handleLogout = () => {
   if (confirm('Apakah Anda yakin ingin keluar dari aplikasi?')) {
     isAuth.value = null
+    userProfile.value = null // Bersihkan cookie saat logout
     router.push('/login')
   }
 }
 
 const isSidebarOpen = ref(false)
+
+// Fungsi untuk menyamakan format "Kab.", "Kabupaten", "Kota", dll untuk tampilan nama Role
+const formatRoleText = (role, unitKerja) => {
+  if (role === 'Admin') return 'Admin BPS';
+  if (role === 'Pegawai') return 'Pegawai';
+  
+  // Jika Supervisor Prov
+  if (role === 'Supervisor Prov') {
+     return 'Supervisor Provinsi';
+  }
+
+  // Jika Operator atau Spv Kabko, ambil nama wilayahnya saja
+  if (role === 'Operator' || role === 'Supervisor Kabko') {
+     let u = unitKerja || '';
+     // Ubah "BPS Kabupaten Kapuas" menjadi "Kapuas", dsb.
+     u = u.replace(/bps|kabupaten|kab\.|kota|provinsi|prov\./gi, '').trim();
+     
+     if (role === 'Operator') return `Operator ${u}`;
+     if (role === 'Supervisor Kabko') return `Supervisor ${u}`;
+  }
+  
+  return role;
+}
+
+// Bantuan logika untuk menyembunyikan menu
+const isPegawai = computed(() => userProfile.value.role === 'Pegawai')
 </script>
 
 <template>
@@ -26,8 +58,8 @@ const isSidebarOpen = ref(false)
         </button>
       </div>
       <div class="marquee-container flex-1 h-full flex items-center">
-        <h1 class="marquee-text-slow text-[20px] font-extrabold text-bps-blue tracking-wider uppercase">
-          SISTEM INFORMASI MANAJEMEN DATA PEGAWAI BADAN PUSAT STATISTIK PROVINSI KALIMANTAN TENGAH
+        <h1 class="marquee-text-slow text-[13px] font-extrabold text-bps-blue tracking-wider uppercase">
+          Sistem Informasi Manajemen Administrasi, Nilai, dan Data Aparatur Terintegrasi (SIMANDAI)
         </h1>
       </div>
     </div>
@@ -58,27 +90,34 @@ const isSidebarOpen = ref(false)
         <NuxtLink @click="isSidebarOpen = false" to="/angka-kredit" class="menu-item">Angka Kredit</NuxtLink>
         <NuxtLink @click="isSidebarOpen = false" to="/usulan-kenaikan" class="menu-item">Usulan Kenaikan</NuxtLink>
 
-        <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Organisasi & Kompetensi</p>
-        <NuxtLink @click="isSidebarOpen = false" to="/analisis-beban-kerja" class="menu-item">Analisis Beban Kerja</NuxtLink>
-        <NuxtLink @click="isSidebarOpen = false" to="/kompetensi/jabatan" class="menu-item ml-2 text-sm">Kompetensi Jabatan</NuxtLink>
-        <NuxtLink @click="isSidebarOpen = false" to="/kompetensi/layanan" class="menu-item ml-2 text-sm">Kompetensi Layanan</NuxtLink>
+        <template v-if="!isPegawai">
+          <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Organisasi & Kompetensi</p>
+          <NuxtLink @click="isSidebarOpen = false" to="/analisis-beban-kerja" class="menu-item">Analisis Beban Kerja</NuxtLink>
+          <NuxtLink @click="isSidebarOpen = false" to="/kompetensi/jabatan" class="menu-item ml-2 text-sm">Kompetensi Jabatan</NuxtLink>
+          <NuxtLink @click="isSidebarOpen = false" to="/kompetensi/layanan" class="menu-item ml-2 text-sm">Kompetensi Layanan</NuxtLink>
 
-        <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Lainnya</p>
-        <NuxtLink @click="isSidebarOpen = false" to="/reward-punishment" class="menu-item">Reward & Punishment</NuxtLink>
+          <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Lainnya</p>
+          <NuxtLink @click="isSidebarOpen = false" to="/reward-punishment" class="menu-item">Reward & Punishment</NuxtLink>
+        </template>
       </nav>
 
       <div class="border-t border-gray-200 p-3">
         <button @click="handleLogout" class="w-full flex items-center justify-between p-2 hover:bg-red-50 rounded-lg transition-colors group">
-          <div class="flex items-center text-left">
-            <div class="w-8 h-8 rounded-full bg-bps-blue text-white flex items-center justify-center font-bold group-hover:bg-red-600 transition-colors">
-              A
+          <div class="flex items-center text-left overflow-hidden">
+            <div class="w-8 h-8 rounded-full bg-bps-blue text-white flex-shrink-0 flex items-center justify-center font-bold group-hover:bg-red-600 transition-colors uppercase">
+              {{ userProfile.nama ? userProfile.nama.charAt(0) : 'U' }}
             </div>
-            <div class="ml-3">
-              <p class="text-sm font-medium text-gray-700 group-hover:text-red-700 transition-colors">Admin BPS</p>
-              <p class="text-xs text-gray-500 group-hover:text-red-500 transition-colors">Super Admin</p>
+            <div class="ml-3 truncate">
+              <p class="text-sm font-medium text-gray-700 group-hover:text-red-700 transition-colors w-28 truncate">
+                 {{ userProfile.role === 'Admin' ? 'Admin BPS' : userProfile.nama || 'Pengguna' }}
+              </p>
+              
+              <p class="text-[11px] font-bold text-bps-blue group-hover:text-red-500 transition-colors truncate">
+                 {{ formatRoleText(userProfile.role, userProfile.unit_kerja) }}
+              </p>
             </div>
           </div>
-          <div class="text-gray-400 group-hover:text-red-600 mr-1" title="Keluar">
+          <div class="text-gray-400 flex-shrink-0 group-hover:text-red-600 mr-1" title="Keluar">
              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
