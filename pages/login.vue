@@ -1,11 +1,13 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCookie } from '#app'
+import { usePegawaiStore } from '~/stores/usePegawaiStore'
 
 definePageMeta({ layout: false })
 
 const router = useRouter()
+const store = usePegawaiStore() // Inisialisasi store
 const nip = ref('')
 const password = ref('')
 const isLoading = ref(false)
@@ -25,15 +27,21 @@ const dataUser = [
   { nip: 'spvprov', pass: '12345', nama: 'Ibu SDM Prov', role: 'Supervisor Prov', unit_kerja: 'BPS Provinsi Kalimantan Tengah' },
   { nip: 'spvkab', pass: '12345', nama: 'Ketua Tim Kapuas', role: 'Supervisor Kabko', unit_kerja: 'BPS Kab. Kapuas' },
   { nip: 'operator', pass: '12345', nama: 'Staf Entri Kapuas', role: 'Operator', unit_kerja: 'BPS Kab. Kapuas' },
-  // Login sebagai Pegawai (Sesuai dengan NIP Budi Santoso di data Pegawai)
-  { nip: '198501012010011001', pass: '12345', nama: 'Budi Santoso', role: 'Pegawai', unit_kerja: 'BPS Provinsi Kalimantan Tengah' },
 ]
 
 const handleLogin = () => {
   errorMessage.value = ''
+  
   if (!nip.value || !password.value) {
     errorMessage.value = "NIP dan Password wajib diisi!"
     return
+  }
+
+  // VALIDASI PANJANG NIP (Khusus jika yang diinput adalah angka/pegawai)
+  const isNumeric = /^\d+$/.test(nip.value)
+  if (isNumeric && (nip.value.length < 9 || nip.value.length > 18)) {
+     errorMessage.value = "NIP Pegawai harus berjumlah antara 9 hingga 18 karakter!"
+     return
   }
   
   isLoading.value = true
@@ -41,11 +49,25 @@ const handleLogin = () => {
   setTimeout(() => {
     isLoading.value = false
     
-    // Cek kecocokan user
-    const userValid = dataUser.find(u => u.nip === nip.value && u.pass === password.value)
+    // 1. Cek apakah yang login adalah Petugas (Admin/Spv/Operator)
+    let userValid = dataUser.find(u => u.nip === nip.value && u.pass === password.value)
+    
+    // 2. Jika bukan Petugas, cari di Database Pegawai Pinia (Bisa NIP Lama atau NIP Baru)
+    if (!userValid) {
+       const peg = store.pegawaiList.find(p => p.nip_baru === nip.value || p.nip_lama === nip.value || p.nip === nip.value)
+       
+       // Asumsi password default semua pegawai adalah 12345
+       if (peg && password.value === '12345') {
+          userValid = {
+            nama: peg.nama_lengkap || peg.nama,
+            role: 'Pegawai',
+            unit_kerja: peg.unit_kerja,
+            nip: peg.nip_baru || peg.nip
+          }
+       }
+    }
     
     if (userValid) {
-      // 1. Simpan Data Sesi
       userSesi.value = {
         nama: userValid.nama,
         role: userValid.role,
@@ -53,11 +75,9 @@ const handleLogin = () => {
         nip: userValid.nip
       }
       isAuth.value = 'true'
-      
-      // 2. Arahkan ke Dashboard
       router.push('/')
     } else {
-      errorMessage.value = "NIP atau Password salah!"
+      errorMessage.value = "NIP atau Password salah / Pegawai tidak ditemukan!"
     }
   }, 800)
 }
@@ -83,8 +103,7 @@ const handleLogin = () => {
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
           <label>NIP / Username</label>
-          <input v-model="nip" type="text" required placeholder="Contoh: admin / spvkab / 198501012010011001">
-        </div>
+          <input v-model="nip" type="text" required minlength="5" maxlength="18" placeholder="Contoh: admin / spvkab / 199999999999999999"></div>
         <div class="form-group">
           <label>Password</label>
           <input v-model="password" type="password" required placeholder="Ketik: 12345">
@@ -101,7 +120,7 @@ const handleLogin = () => {
         • Spv Prov: <code>spvprov</code><br>
         • Spv Kabko: <code>spvkab</code><br>
         • Operator: <code>operator</code><br>
-        • Pegawai: <code>198501012010011001</code>
+        • Pegawai: <code>199999999999999999</code>
       </div>
     </div>
   </div>
