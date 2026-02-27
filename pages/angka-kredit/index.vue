@@ -1130,9 +1130,9 @@ onMounted(() => {
                  <td colspan="2" style="border: 1px solid black; text-align: center; padding: 3px;">{{ printData.analisis.targetJenjang }}</td>
               </tr>
               <tr>
-                 <td colspan="4" style="border: 1px solid black; padding: 3px 5px; text-align: justify;">Kekurangan Angka Kredit yang harus dicapai untuk kenaikan pangkat</td>
+                 <td colspan="5" style="border: 1px solid black; padding: 3px 5px; text-align: justify;">Kekurangan Angka Kredit yang harus dicapai untuk kenaikan pangkat</td>
                  
-                 <td colspan="3" rowspan="2" style="border: 1px solid black; text-align: center; vertical-align: middle; padding: 3px;">
+                 <td colspan="2" rowspan="2" style="border: 1px solid black; text-align: center; vertical-align: middle; padding: 3px;">
                     {{ printData.analisis.kurangPangkat }}
                  </td>
                  
